@@ -119,8 +119,12 @@ export default function CapabilityMap() {
                 const level = getMaturityLevel(score);
                 const painCount = (impactedCapabilities[l2.id] || []).length;
                 
-                // Cap heatmap class at 3
-                const heatmapClass = `heatmap-${Math.min(painCount, 3)}`;
+                let heatmapLevel = 0;
+                if (painCount >= 5) heatmapLevel = 3;
+                else if (painCount >= 3) heatmapLevel = 2;
+                else if (painCount >= 1) heatmapLevel = 1;
+                
+                const heatmapClass = `heatmap-${heatmapLevel}`;
 
                 return (
                   <div

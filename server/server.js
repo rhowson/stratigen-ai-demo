@@ -4,6 +4,8 @@ import { config } from 'dotenv';
 import OpenAI from 'openai';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { v4 as uuidv4 } from 'uuid';
+import { getDb } from './db.js';
 
 config();
 
@@ -189,6 +191,76 @@ Format:
   } catch (err) {
     console.error('Pain point mapping error:', err.message);
     res.status(500).json({ error: 'Failed to map pain point', details: err.message });
+  }
+});
+
+// ─── Project Database Endpoints ──────────────────────────────
+
+// GET all projects (summarised)
+app.get('/api/projects', async (req, res) => {
+  try {
+    const db = await getDb();
+    const projects = await db.all(`SELECT id, name, created_at, updated_at FROM projects ORDER BY updated_at DESC`);
+    res.json({ success: true, projects });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch projects', details: err.message });
+  }
+});
+
+// GET single project state
+app.get('/api/projects/:id', async (req, res) => {
+  try {
+    const db = await getDb();
+    const project = await db.get(`SELECT * FROM projects WHERE id = ?`, [req.params.id]);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    res.json({ success: true, project: { ...project, state: JSON.parse(project.state_json) } });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch project', details: err.message });
+  }
+});
+
+// POST new project
+app.post('/api/projects', async (req, res) => {
+  try {
+    const { name, state } = req.body;
+    if (!name || !state) return res.status(400).json({ error: 'Name and state are required' });
+
+    const db = await getDb();
+    const id = uuidv4();
+    await db.run(
+      `INSERT INTO projects (id, name, state_json) VALUES (?, ?, ?)`,
+      [id, name, JSON.stringify(state)]
+    );
+    res.json({ success: true, projectId: id });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create project', details: err.message });
+  }
+});
+
+// PUT update project
+app.put('/api/projects/:id', async (req, res) => {
+  try {
+    const { name, state } = req.body;
+    const db = await getDb();
+    const id = req.params.id;
+
+    const updates = [];
+    const params = [];
+    
+    if (name) { updates.push('name = ?'); params.push(name); }
+    if (state) { updates.push('state_json = ?'); params.push(JSON.stringify(state)); }
+    
+    if (updates.length === 0) return res.status(400).json({ error: 'Nothing to update' });
+    
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    params.push(id);
+
+    const result = await db.run(`UPDATE projects SET ${updates.join(', ')} WHERE id = ?`, params);
+    
+    if (result.changes === 0) return res.status(404).json({ error: 'Project not found' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update project', details: err.message });
   }
 });
 

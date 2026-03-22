@@ -130,8 +130,8 @@
   border-color: var(--border-default);
 }
 .heatmap-1 {
-  background: #EFE8FF; /* very light purple/blue for minimal impact */
-  border-color: #DABDFB;
+  background: #E0F2FE; /* light blue for 1-2 pain points */
+  border-color: #7DD3FC;
 }
 .heatmap-2 {
   background: #F8B4B4; /* medium red/orange for moderate impact */

@@ -8,6 +8,10 @@ import { assessRegulations } from '../engines/regulatoryEngine';
 const AppContext = createContext(null);
 
 const initialState = {
+  // Project
+  projectId: null,
+  isSaving: false,
+
   // Company
   company: null,
   isOnboarded: false,
@@ -60,6 +64,17 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'LOAD_PROJECT':
+      return { 
+        ...action.payload, 
+        rightPanelOpen: state.rightPanelOpen, 
+        slidePanel: null,
+        isSaving: false 
+      };
+    case 'SET_PROJECT_ID':
+      return { ...state, projectId: action.payload };
+    case 'SET_IS_SAVING':
+      return { ...state, isSaving: action.payload };
     case 'TOGGLE_RIGHT_PANEL':
       return { ...state, rightPanelOpen: action.payload !== undefined ? action.payload : !state.rightPanelOpen };
     case 'SET_COMPANY': {
@@ -233,6 +248,9 @@ export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const actions = {
+    loadProject: useCallback((data) => dispatch({ type: 'LOAD_PROJECT', payload: data }), []),
+    setProjectId: useCallback((id) => dispatch({ type: 'SET_PROJECT_ID', payload: id }), []),
+    setIsSaving: useCallback((val) => dispatch({ type: 'SET_IS_SAVING', payload: val }), []),
     setCompany: useCallback((data) => dispatch({ type: 'SET_COMPANY', payload: data }), []),
     addObjective: useCallback((obj) => dispatch({ type: 'ADD_OBJECTIVE', payload: obj }), []),
     removeObjective: useCallback((id) => dispatch({ type: 'REMOVE_OBJECTIVE', payload: id }), []),

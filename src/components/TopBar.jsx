@@ -1,5 +1,6 @@
 import { useApp } from '../context/AppContext';
 import { Hexagon, Target, AlertCircle, Tool, Layers, Cpu, Shield, ChevronRight } from 'react-feather';
+import ProjectSwitcher from './ProjectSwitcher';
 import './TopBar.css';
 
 export default function TopBar() {
@@ -19,12 +20,10 @@ export default function TopBar() {
           <Hexagon size={20} className="logo-icon" />
           <span className="logo-text">Stratigen<span className="logo-ai">AI</span></span>
         </div>
-        {company && (
-          <div className="topbar-company animate-fade-in">
-            <ChevronRight size={14} className="topbar-sep" />
-            <span className="company-name">{company.name}</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'var(--space-md)' }} className="animate-fade-in">
+          <ChevronRight size={14} className="topbar-sep" style={{ marginRight: 'var(--space-md)' }} />
+          <ProjectSwitcher />
+        </div>
       </div>
 
       <div className="topbar-centre">
