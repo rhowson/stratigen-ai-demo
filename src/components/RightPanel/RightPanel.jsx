@@ -1,7 +1,7 @@
 import { useApp } from '../../context/AppContext';
 import { Sidebar, ChevronRight, Activity, TrendingUp, AlertTriangle, Shield, Compass } from 'react-feather';
 import KPIImpact from './KPIImpact';
-import MaturityBenchmark from './MaturityBenchmark';
+import ImpactOverview from './ImpactOverview';
 import AIOpportunities from './AIOpportunities';
 import RiskIndicators from './RiskIndicators';
 import CompetitorInsights from './CompetitorInsights';
@@ -41,7 +41,7 @@ export default function RightPanel() {
       </div>
       <div className="rp-content">
         <CompetitorInsights />
-        <MaturityBenchmark />
+        <ImpactOverview />
         <KPIImpact />
         <AIOpportunities />
         <RiskIndicators />

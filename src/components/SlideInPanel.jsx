@@ -33,18 +33,15 @@ export default function SlideInPanel() {
         </div>
 
         <div className="slide-section">
-          <div className="section-title">Maturity</div>
-          <div className="maturity-display">
-            <div className={`maturity-badge maturity-${cappedMaturity}`}>{cappedMaturity}</div>
-            <div className="maturity-bar-container">
-              <div className="maturity-bar-bg">
-                <div className="maturity-bar-fill" style={{ width: `${(maturity / 5) * 100}%` }} />
-              </div>
-              <div className="maturity-scale">
-                <span>Initial</span>
-                <span>Optimised</span>
-              </div>
-            </div>
+          <div className="section-title">Impact Severity</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+            <div style={{
+              width: 16, height: 16, borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)',
+              background: pains.length >= 5 ? '#9B1C1C' : pains.length >= 3 ? '#F8B4B4' : pains.length >= 1 ? '#E0F2FE' : '#FFFFFF'
+            }} />
+            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+              {pains.length >= 5 ? 'Critical' : pains.length >= 3 ? 'High' : pains.length >= 1 ? 'Moderate' : 'Neutral'}
+            </span>
           </div>
         </div>
 
@@ -67,9 +64,6 @@ export default function SlideInPanel() {
             <div className="section-title">Fixes</div>
             {capFixes.map(fix => (
               <div key={fix.capabilityId} className="fix-detail">
-                <div className="fix-target">
-                  Target: <span className={`maturity-badge maturity-${fix.targetMaturity}`}>{fix.targetMaturity}</span>
-                </div>
                 {Object.entries(fix.dimensions).map(([dim, items]) => (
                   <div key={dim} className="fix-dimension">
                     <div className="dim-label">{dim.charAt(0).toUpperCase() + dim.slice(1)}</div>

@@ -48,7 +48,7 @@ export default function AIOpportunities() {
           >
             <div className="insight-card-header">
               <span className="insight-card-title">{opp.capabilityName}</span>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Gap: {opp.maturityGap}</span>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>AI Value: {opp.maturityGap}</span>
             </div>
             <div className="insight-card-chips">
               {opp.levels.map(l => (

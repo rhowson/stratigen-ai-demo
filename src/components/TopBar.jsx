@@ -7,9 +7,6 @@ export default function TopBar() {
   const { state, actions } = useApp();
   const { company, objectives, maturityScores, painPoints, fixes, workPackages, showAILayer, showRegulatoryLayer, isOnboarded } = state;
 
-  const scored = Object.values(maturityScores).filter(s => s > 0);
-  const avgMaturity = scored.length > 0 ? (scored.reduce((a, b) => a + b, 0) / scored.length).toFixed(1) : '—';
-
   const steps = [isOnboarded, objectives.length > 0, painPoints.length > 0, fixes.length > 0, workPackages.length > 0];
   const progress = Math.round((steps.filter(Boolean).length / steps.length) * 100);
 
