@@ -1,20 +1,18 @@
 import { useApp } from '../../context/AppContext';
-import { Sidebar, ChevronRight, Activity, TrendingUp, AlertTriangle, Shield, Compass } from 'react-feather';
+import { Sidebar, ChevronRight, Compass } from 'react-feather';
 import KPIImpact from './KPIImpact';
 import ImpactOverview from './ImpactOverview';
-import AIOpportunities from './AIOpportunities';
 import RiskIndicators from './RiskIndicators';
 import CompetitorInsights from './CompetitorInsights';
 import './RightPanel.css';
 
 export default function RightPanel() {
   const { state, actions } = useApp();
-  const { rightPanelOpen, competitorLoading, competitors, fixes, aiOpportunities } = state;
+  const { rightPanelOpen, competitorLoading, competitors, fixes, regulations } = state;
 
   if (!state.isOnboarded) return null;
 
-  // Calculate if there are new insights to show
-  const hasInsights = competitors || fixes.length > 0 || aiOpportunities.length > 0;
+  const hasInsights = competitors || fixes.length > 0 || regulations.length > 0;
   const isGenerating = competitorLoading;
 
   if (!rightPanelOpen) {
@@ -43,7 +41,6 @@ export default function RightPanel() {
         <CompetitorInsights />
         <ImpactOverview />
         <KPIImpact />
-        <AIOpportunities />
         <RiskIndicators />
       </div>
     </aside>

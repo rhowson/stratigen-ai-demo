@@ -233,6 +233,24 @@
 .action-done {
   color: var(--accent-green-dark);
 }
+.regenerate-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.action-card.has-done:hover .regenerate-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+.regenerate-btn:hover {
+  color: var(--text-primary) !important;
+  background: var(--gray-100) !important;
+}
 
 /* ===== Company Profile ===== */
 .profile-loading {
@@ -362,3 +380,82 @@
   font-weight: 500;
 }
 
+/* ===== Custom Modal ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 150ms ease-out;
+}
+.modal-content {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-default);
+  animation: slideUp 150ms ease-out;
+  overflow: hidden;
+}
+.modal-header {
+  padding: var(--space-lg) var(--space-lg) var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.modal-header .icon-warning {
+  color: var(--accent-amber);
+}
+.modal-body {
+  padding: 0 var(--space-lg) var(--space-lg);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-light);
+}
+.btn-secondary {
+  padding: 8px 16px;
+  background: var(--white);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.btn-secondary:hover {
+  background: var(--gray-50);
+  color: var(--text-primary);
+}
+.btn-primary {
+  padding: 8px 16px;
+  background: var(--accent-green);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--white);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.btn-primary:hover {
+  background: var(--accent-green-dark);
+}

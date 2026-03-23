@@ -1,5 +1,6 @@
 import { useApp, kpiLibrary } from '../../context/AppContext';
 import { TrendingUp } from 'react-feather';
+import InsightSection from './InsightSection';
 
 export default function KPIImpact() {
   const { state } = useApp();
@@ -20,13 +21,12 @@ export default function KPIImpact() {
   if (impactedKPIs.length === 0) return null;
 
   return (
-    <div className="insight-section animate-fade-in">
-      <div className="insight-title">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <TrendingUp size={14} /> KPI Impact
-        </div>
-        <span className="insight-count">{impactedKPIs.length}</span>
-      </div>
+    <InsightSection
+      title="KPI Impact"
+      icon={<TrendingUp size={14} />}
+      count={impactedKPIs.length}
+      defaultOpen={false}
+    >
       <div className="bar-chart">
         {impactedKPIs.slice(0, 8).map((kpi, i) => (
           <div key={i} className="bar-row">
@@ -43,6 +43,6 @@ export default function KPIImpact() {
           </div>
         ))}
       </div>
-    </div>
+    </InsightSection>
   );
 }

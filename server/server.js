@@ -264,6 +264,87 @@ app.put('/api/projects/:id', async (req, res) => {
   }
 });
 
+// ─── AI Use Case Analysis (GPT-powered) ──────────────────────
+app.post('/api/generate-ai-analysis', async (req, res) => {
+  try {
+    const { company, capabilities, painPoints } = req.body;
+    if (!capabilities || capabilities.length === 0) {
+      return res.status(400).json({ error: 'No impacted capabilities provided' });
+    }
+
+    // Build a compact context summary for the prompt
+    const capSummaries = capabilities.map(c => ({
+      id: c.capabilityId,
+      name: c.capabilityName,
+      l0: c.l0Name,
+      l1: c.l1Name,
+      painPoints: c.painPoints || [],
+    }));
+
+    console.log(`[AI Analysis] Starting GPT-4o analysis for ${capabilities.length} capabilities...`);
+    const startTime = Date.now();
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      temperature: 0.4,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are an AI transformation strategist specialising in the recruitment industry. 
+For each business capability provided, identify the most impactful AI enhancement opportunity.
+Classify each opportunity into one of three levels:
+- Level 1 (Prompt Engineering): Simple AI-assisted tasks — co-pilot style, human in the loop. E.g. AI-drafted emails, summarisation, assisted screening.
+- Level 2 (Workflow Automation): Multi-step AI workflows that partially automate processes. E.g. automated CV parsing pipeline, AI-scheduled interviews, smart candidate shortlisting.
+- Level 3 (Agentic AI): Autonomous AI agents that own an end-to-end process with minimal human intervention. E.g. fully autonomous sourcing agent, AI-negotiated offer management.
+
+For each capability, return ONE primary use case at the most appropriate level based on its pain points and maturity.
+CRITICAL: Keep 'valueAndBenefits' and 'processImpact' to ONE concise sentence each. Keep 'nextSteps' to a list of max 3 very short bullet points. Do not write long paragraphs.
+
+Return a JSON object:
+{
+  "opportunities": [
+    {
+      "capabilityId": "string",
+      "capabilityName": "string",
+      "l0Name": "string",
+      "l1Name": "string",
+      "level": 1 | 2 | 3,
+      "type": "short label e.g. 'Co-Pilot Screening' or 'Autonomous Sourcing Agent'",
+      "description": "1 sentence description of the specific AI enhancement",
+      "valueAndBenefits": "1 sentence explanation of business value/benefits",
+      "processImpact": "1 sentence description of process changes",
+      "nextSteps": ["Very short step 1", "Very short step 2", "Very short step 3"],
+      "tools": ["list of 2-3 specific AI tools or platforms relevant to this use case"],
+      "estimatedImpact": "Low | Medium | High",
+      "implementationComplexity": "Low | Medium | High"
+    }
+  ]
+}`
+        },
+        {
+          role: 'user',
+          content: `Company: ${company || 'Recruitment Agency'}
+
+Impacted Capabilities and their Pain Points:
+${JSON.stringify(capSummaries, null, 2)}
+
+For each capability, identify the single best AI use case with level classification.`
+        }
+      ]
+    });
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[AI Analysis] Completed in ${duration}s. Parsing response...`);
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    res.json({ success: true, opportunities: result.opportunities || [] });
+  } catch (err) {
+    console.error('[AI Analysis] Error:', err.message);
+    res.status(500).json({ error: 'Failed to generate AI analysis', details: err.message });
+  }
+});
+
 // ─── Catch-all: serve frontend (Railway SPA support) ───────────
 app.get('/{*splat}', (req, res) => {
   const indexPath = path.join(distPath, 'index.html');

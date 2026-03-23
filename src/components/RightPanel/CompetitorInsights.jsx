@@ -1,5 +1,6 @@
 import { useApp } from '../../context/AppContext';
 import { Target } from 'react-feather';
+import InsightSection from './InsightSection';
 
 export default function CompetitorInsights() {
   const { state } = useApp();
@@ -7,10 +8,7 @@ export default function CompetitorInsights() {
 
   if (competitorLoading) {
     return (
-      <div className="insight-section">
-        <div className="insight-title">
-          <Target size={14} /> Competitor Analysis
-        </div>
+      <InsightSection title="Competitor Analysis" icon={<Target size={14} />} defaultOpen={true}>
         <div className="competitor-loading">
           <div className="skeleton-line" />
           <div className="skeleton-line short" />
@@ -20,16 +18,15 @@ export default function CompetitorInsights() {
             Running competitor analysis...
           </div>
         </div>
-      </div>
+      </InsightSection>
     );
   }
 
   if (competitorError) {
     return (
-      <div className="insight-section">
-        <div className="insight-title"><Target size={14} /> Competitor Analysis</div>
+      <InsightSection title="Competitor Analysis" icon={<Target size={14} />} defaultOpen={true}>
         <div className="insight-empty">⚠️ {competitorError}</div>
-      </div>
+      </InsightSection>
     );
   }
 
@@ -39,14 +36,12 @@ export default function CompetitorInsights() {
   const positionColors = { Leader: 'chip-dark', Challenger: 'chip-cyan', Niche: 'chip-amber', Emerging: 'chip-emerald' };
 
   return (
-    <div className="insight-section animate-fade-in">
-      <div className="insight-title">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Target size={14} /> Competitor Analysis
-        </div>
-        <span className="insight-count">{competitors.competitors?.length || 0}</span>
-      </div>
-
+    <InsightSection
+      title="Competitor Analysis"
+      icon={<Target size={14} />}
+      count={competitors.competitors?.length || 0}
+      defaultOpen={false}
+    >
       {competitors.marketInsights && (
         <div className="market-insights-card">
           <p>{competitors.marketInsights}</p>
@@ -110,6 +105,6 @@ export default function CompetitorInsights() {
           ))}
         </div>
       )}
-    </div>
+    </InsightSection>
   );
 }

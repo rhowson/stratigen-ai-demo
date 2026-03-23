@@ -1,5 +1,6 @@
 import { useApp } from '../../context/AppContext';
 import { Shield } from 'react-feather';
+import InsightSection from './InsightSection';
 
 export default function RiskIndicators() {
   const { state } = useApp();
@@ -20,14 +21,12 @@ export default function RiskIndicators() {
   };
 
   return (
-    <div className="insight-section animate-fade-in">
-      <div className="insight-title">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Shield size={14} /> Risk Indicators
-        </div>
-        <span className="insight-count">{regulations.length}</span>
-      </div>
-
+    <InsightSection
+      title="Risk Indicators"
+      icon={<Shield size={14} />}
+      count={regulations.length}
+      defaultOpen={false}
+    >
       <div className="summary-grid" style={{ marginBottom: 'var(--space-md)' }}>
         {Object.entries(riskCounts).map(([level, count]) => (
           <div key={level} className="summary-card">
@@ -61,6 +60,6 @@ export default function RiskIndicators() {
           </div>
         ))}
       </div>
-    </div>
+    </InsightSection>
   );
 }

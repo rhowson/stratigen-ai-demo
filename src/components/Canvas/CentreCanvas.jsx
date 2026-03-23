@@ -1,11 +1,21 @@
+import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Hexagon, Target, ChevronRight } from 'react-feather';
+import { Hexagon, Target, Map, Layers, Cpu } from 'react-feather';
 import CapabilityMap from './CapabilityMap';
+import WorkPackageView from './WorkPackageView';
+import AIUseCaseView from './AIUseCaseView';
 import './CentreCanvas.css';
 
+const VIEWS = [
+  { id: 'capabilities', label: 'Capability Map', icon: Map },
+  { id: 'workpackages', label: 'Work Packages',  icon: Layers },
+  { id: 'ai',          label: 'AI Use Cases',    icon: Cpu },
+];
+
 export default function CentreCanvas() {
-  const { state, actions } = useApp();
-  const { isOnboarded, company, objectives, workPackages } = state;
+  const { state } = useApp();
+  const { isOnboarded, objectives, workPackages, aiOpportunities } = state;
+  const [view, setView] = useState('capabilities');
 
   if (!isOnboarded) {
     return (
@@ -19,9 +29,14 @@ export default function CentreCanvas() {
     );
   }
 
+  const viewCounts = {
+    workpackages: workPackages.length,
+    ai: aiOpportunities.length,
+  };
+
   return (
     <div className="canvas">
-      {/* Objectives Row */}
+      {/* Objectives row */}
       {objectives.length > 0 && (
         <div className="canvas-objectives animate-fade-in">
           <div className="objectives-nodes">
@@ -36,32 +51,31 @@ export default function CentreCanvas() {
         </div>
       )}
 
-      {/* Capability Map */}
-      <div className="canvas-body">
-        <CapabilityMap />
+      {/* View tabs bar */}
+      <div className="canvas-tabs">
+        {VIEWS.map(v => {
+          const Icon = v.icon;
+          const count = viewCounts[v.id];
+          return (
+            <button
+              key={v.id}
+              className={`canvas-tab ${view === v.id ? 'canvas-tab-active' : ''}`}
+              onClick={() => setView(v.id)}
+            >
+              <Icon size={13} />
+              {v.label}
+              {count > 0 && <span className="canvas-tab-count">{count}</span>}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Workstreams */}
-      {workPackages.length > 0 && (
-        <div className="canvas-workstreams animate-fade-in">
-          <div className="ws-header">
-            <span className="section-title" style={{ margin: 0 }}>Workstreams</span>
-            <span className="ws-count">{workPackages.length}</span>
-          </div>
-          <div className="ws-list">
-            {workPackages.map(ws => (
-              <div key={ws.id} className="ws-card glass-card" onClick={() => actions.openSlidePanel('workpackage', ws.packages[0])}>
-                <div className="ws-name">{ws.name}</div>
-                <div className="ws-meta">
-                  <span>{ws.packages.length} packages</span>
-                  <span>·</span>
-                  <span>{ws.totalFixes} fixes</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Active view */}
+      <div className="canvas-body">
+        {view === 'capabilities' && <CapabilityMap />}
+        {view === 'workpackages' && <WorkPackageView />}
+        {view === 'ai'           && <AIUseCaseView />}
+      </div>
     </div>
   );
 }

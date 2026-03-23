@@ -114,19 +114,61 @@
 
 /* Base sections */
 .insight-section {
+  border-bottom: 1px solid var(--border-light);
   animation: fadeIn 300ms ease-out both;
 }
-.insight-title {
+.insight-section-collapsed {
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* Collapsible toggle header */
+.insight-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px var(--space-md);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast);
+  gap: var(--space-xs);
+}
+.insight-section-toggle:hover {
+  background: var(--bg-tertiary);
+}
+.insight-section-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.insight-section-chevron {
+  color: var(--text-tertiary);
+  display: flex;
+  flex-shrink: 0;
+}
+.insight-section-icon {
+  color: var(--text-tertiary);
+  display: flex;
+}
+.insight-section-title {
   font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-tertiary);
-  margin-bottom: var(--space-sm);
+  color: var(--text-secondary);
+}
+.insight-section-toggle-right {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-xs);
 }
+.insight-section-badge {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.insight-section-body {
+  padding: 0 var(--space-md) var(--space-md);
+}
+
 .insight-count {
   background: var(--accent-green-pale);
   color: var(--accent-green-dark);

@@ -48,6 +48,7 @@ const initialState = {
 
   // AI layer
   aiOpportunities: [],
+  aiLoading: false,
   showAILayer: false,
 
   // Regulatory
@@ -167,7 +168,13 @@ function reducer(state, action) {
       });
 
       const fixes = generateAllFixes(allImpactedCaps, painsByCapability, state.maturityScores);
-      return { ...state, fixes };
+      return { 
+        ...state, 
+        fixes,
+        workPackages: [],
+        aiOpportunities: [],
+        regulations: [],
+      };
     }
 
     case 'CREATE_WORK_PACKAGES': {
@@ -188,13 +195,26 @@ function reducer(state, action) {
       })();
 
       const workPackages = generateWorkPackages(fixes);
-      return { ...state, fixes, workPackages };
+      return { 
+        ...state, 
+        fixes, 
+        workPackages,
+        aiOpportunities: [],
+        regulations: [],
+      };
     }
 
+    case 'SET_AI_LOADING':
+      // If we are starting to load, clear the old AI opportunities
+      if (action.payload) {
+        return { ...state, aiLoading: true, aiOpportunities: [], regulations: [] };
+      }
+      return { ...state, aiLoading: false };
+
     case 'GENERATE_AI': {
-      const aiOpportunities = generateAIOpportunities(state.fixes);
+      const aiOpportunities = action.payload || [];
       const regulations = assessRegulations(aiOpportunities);
-      return { ...state, aiOpportunities, regulations, showAILayer: true };
+      return { ...state, aiOpportunities, regulations, showAILayer: true, aiLoading: false };
     }
 
     case 'TOGGLE_AI_LAYER':
@@ -273,7 +293,59 @@ export function AppProvider({ children }) {
     }, [state.isOnboarded, state.capabilities]),
     generateFixes: useCallback(() => dispatch({ type: 'GENERATE_FIXES' }), []),
     createWorkPackages: useCallback(() => dispatch({ type: 'CREATE_WORK_PACKAGES' }), []),
-    generateAI: useCallback(() => dispatch({ type: 'GENERATE_AI' }), []),
+    generateAI: useCallback(async () => {
+      dispatch({ type: 'SET_AI_LOADING', payload: true });
+      try {
+        // Build capability context from fixes
+        const capabilities = state.fixes.map(f => ({
+          capabilityId: f.capabilityId,
+          capabilityName: f.capabilityName,
+          l0Name: f.l0Name,
+          l1Name: f.l1Name,
+          painPoints: f.painPoints || [],
+        }));
+
+        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        const res = await fetch(`${API_BASE}/api/generate-ai-analysis`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            company: state.company?.name,
+            capabilities,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          // Normalise GPT response into the existing opportunities shape
+          const normalised = (data.opportunities || []).map(opp => ({
+            capabilityId: opp.capabilityId,
+            capabilityName: opp.capabilityName,
+            l0Name: opp.l0Name,
+            l1Name: opp.l1Name,
+            maturityGap: opp.estimatedImpact === 'High' ? 3 : opp.estimatedImpact === 'Medium' ? 2 : 1,
+            estimatedImpact: opp.estimatedImpact,
+            implementationComplexity: opp.implementationComplexity,
+            levels: [{
+              level: opp.level,
+              type: opp.type,
+              description: opp.description,
+              valueAndBenefits: opp.valueAndBenefits || '',
+              processImpact: opp.processImpact || '',
+              nextSteps: opp.nextSteps || [],
+              tools: opp.tools || [],
+            }],
+          }));
+          dispatch({ type: 'GENERATE_AI', payload: normalised });
+        } else {
+          console.error('AI analysis failed:', data.error);
+          dispatch({ type: 'SET_AI_LOADING', payload: false });
+        }
+      } catch (err) {
+        console.error('AI generate error:', err);
+        dispatch({ type: 'SET_AI_LOADING', payload: false });
+      }
+    }, [state.fixes, state.company]),
     toggleAILayer: useCallback(() => dispatch({ type: 'TOGGLE_AI_LAYER' }), []),
     toggleRegulatoryLayer: useCallback(() => dispatch({ type: 'TOGGLE_REGULATORY_LAYER' }), []),
     setProfileLoading: useCallback((v) => dispatch({ type: 'SET_PROFILE_LOADING', payload: v }), []),
