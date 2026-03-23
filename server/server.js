@@ -22,7 +22,7 @@ app.use(express.json());
 const distPath = path.join(__dirname, '..', 'dist');
 app.use(express.static(distPath));
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'missing-key-prevent-crash' });
 
 // ─── Scrape & Extract Company Profile ──────────────────────────
 app.post('/api/scrape-company', async (req, res) => {
@@ -346,7 +346,7 @@ For each capability, identify the single best AI use case with level classificat
 });
 
 // ─── Catch-all: serve frontend (Railway SPA support) ───────────
-app.get('/{*splat}', (req, res) => {
+app.get('*', (req, res) => {
   const indexPath = path.join(distPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
