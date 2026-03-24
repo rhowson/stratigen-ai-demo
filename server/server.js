@@ -346,7 +346,7 @@ For each capability, identify the single best AI use case with level classificat
 });
 
 // ─── Catch-all: serve frontend (Railway SPA support) ───────────
-app.get('/*', (req, res) => {
+app.get('/:path(.*)', (req, res) => {
   const indexPath = path.join(distPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
