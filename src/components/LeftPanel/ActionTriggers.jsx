@@ -11,6 +11,7 @@ export default function ActionTriggers() {
   const hasWorkPackages = state.workPackages.length > 0;
   const hasAI = state.aiOpportunities.length > 0;
   const aiLoading = state.aiLoading;
+  const fixesLoading = state.fixesLoading;
 
   const actionCards = [
     {
@@ -18,8 +19,9 @@ export default function ActionTriggers() {
       title: 'Generate Fixes',
       desc: 'Analyse pain points and generate fixes across Process, People, Technology, and Data.',
       action: actions.generateFixes,
-      enabled: hasPainPoints,
-      done: hasFixes,
+      enabled: hasPainPoints && !fixesLoading,
+      done: hasFixes && !fixesLoading,
+      loading: fixesLoading,
       doneLabel: `${state.fixes.length} fixes generated`,
       warning: 'Regenerating fixes will overwrite your existing fixes. Continue?',
     },

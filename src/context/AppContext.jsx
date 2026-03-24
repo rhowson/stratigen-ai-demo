@@ -42,6 +42,7 @@ const initialState = {
 
   // Fixes
   fixes: [],
+  fixesLoading: false,
 
   // Work packages
   workPackages: [],
@@ -152,25 +153,17 @@ function reducer(state, action) {
       };
     }
 
+    case 'SET_FIXES_LOADING':
+      if (action.payload) {
+        return { ...state, fixesLoading: true, fixes: [], workPackages: [], aiOpportunities: [], regulations: [] };
+      }
+      return { ...state, fixesLoading: false };
+
     case 'GENERATE_FIXES': {
-      // Collect all impacted capabilities
-      const allImpactedCaps = [];
-      const painsByCapability = {};
-
-      state.painPoints.forEach(pp => {
-        pp.mappedCapabilities.forEach(cap => {
-          if (!painsByCapability[cap.l2Id]) {
-            painsByCapability[cap.l2Id] = [];
-            allImpactedCaps.push(cap);
-          }
-          painsByCapability[cap.l2Id].push(pp);
-        });
-      });
-
-      const fixes = generateAllFixes(allImpactedCaps, painsByCapability, state.maturityScores);
       return { 
         ...state, 
-        fixes,
+        fixes: action.payload || [],
+        fixesLoading: false,
         workPackages: [],
         aiOpportunities: [],
         regulations: [],
@@ -291,7 +284,47 @@ export function AppProvider({ children }) {
 
       dispatch({ type: 'ADD_PAIN_POINT', payload: { text, mappedCapabilities: mapped } });
     }, [state.isOnboarded, state.capabilities]),
-    generateFixes: useCallback(() => dispatch({ type: 'GENERATE_FIXES' }), []),
+    generateFixes: useCallback(async () => {
+      dispatch({ type: 'SET_FIXES_LOADING', payload: true });
+      try {
+        // Collect all impacted capabilities
+        const impactedCapabilities = [];
+        const painsByCapability = {};
+        state.painPoints.forEach(pp => {
+          pp.mappedCapabilities.forEach(cap => {
+            if (!painsByCapability[cap.l2Id]) {
+              painsByCapability[cap.l2Id] = [];
+              impactedCapabilities.push(cap);
+            }
+            painsByCapability[cap.l2Id].push(pp);
+          });
+        });
+
+        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        const res = await fetch(`${API_BASE}/api/generate-fixes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            companyProfile: state.companyProfile,
+            companyName: state.company?.name,
+            impactedCapabilities,
+            painsByCapability,
+            maturityScores: state.maturityScores,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          dispatch({ type: 'GENERATE_FIXES', payload: data.fixes });
+        } else {
+          console.error('Fix generation failed:', data.error);
+          dispatch({ type: 'SET_FIXES_LOADING', payload: false });
+        }
+      } catch (err) {
+        console.error('Fix generation error:', err);
+        dispatch({ type: 'SET_FIXES_LOADING', payload: false });
+      }
+    }, [state.painPoints, state.company, state.companyProfile, state.maturityScores]),
     createWorkPackages: useCallback(() => dispatch({ type: 'CREATE_WORK_PACKAGES' }), []),
     generateAI: useCallback(async () => {
       dispatch({ type: 'SET_AI_LOADING', payload: true });

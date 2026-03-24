@@ -264,6 +264,81 @@ app.put('/api/projects/:id', async (req, res) => {
   }
 });
 
+// ─── AI-Powered Fix Generation ─────────────────────────────────
+app.post('/api/generate-fixes', async (req, res) => {
+  try {
+    const { companyProfile, companyName, objectives, impactedCapabilities, painsByCapability, maturityScores } = req.body;
+    
+    if (!impactedCapabilities || impactedCapabilities.length === 0) {
+      return res.status(400).json({ error: 'No impacted capabilities provided' });
+    }
+
+    console.log(`[AI Fixes] Generating fixes for ${impactedCapabilities.length} capabilities for ${companyName}...`);
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      temperature: 0.4,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a world-class Strategic Management Consultant specializing in the recruitment industry. 
+Your task is to generate high-impact, contextual "fixes" for business capabilities that are currently underperforming or experiencing pain.
+
+You will be provided with:
+1. Company Context: Description, products, services, and key differentiators.
+2. Strategic Objectives: The specific goals and mission statement defined for this transformation.
+3. Capability Gaps: Level 2 capabilities with their current maturity and specific user-reported pain points.
+
+For EACH capability, generate a cohesive strategy broken down into:
+- process: Concrete steps to standardize or optimize the workflow.
+- people: Training, hiring, or organizational changes needed.
+- technology: Specific software, integrations, or tools to implement.
+- data: Metrics to track, data quality improvements, or dashboard needs.
+
+Rules:
+1. ALIGN WITH STRATEGY: Ensure all fixes directly support the provided Strategic Objectives and mission.
+2. BE SPECIFIC to the company context (e.g., if they focus on "Renewable Energy", reflect that in the strategy).
+3. BE CONCISE. Max 2 bullet points per dimension.
+4. OUTPUT JSON format:
+{
+  "fixes": [
+    {
+      "capabilityId": "string-id",
+      "capabilityName": "string",
+      "l0Name": "string",
+      "l1Name": "string",
+      "currentMaturity": number,
+      "targetMaturity": number (usually current + 1 or +2, max 5),
+      "dimensions": {
+        "process": ["bullet 1", "bullet 2"],
+        "people": ["bullet 1", "bullet 2"],
+        "technology": ["bullet 1", "bullet 2"],
+        "data": ["bullet 1", "bullet 2"]
+      }
+    }
+  ]
+}`
+        },
+        {
+          role: 'user',
+          content: `Company: ${companyName}\nProfile: ${JSON.stringify(companyProfile)}\nStrategic Objectives: ${JSON.stringify(objectives)}\n\nImpacted Capabilities:\n${JSON.stringify(impactedCapabilities.map(c => ({
+            ...c,
+            painPoints: painsByCapability[c.l2Id] || [],
+            currentMaturity: maturityScores[c.l2Id] || 1
+          })))}`
+        }
+      ]
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    res.json({ success: true, fixes: result.fixes || [] });
+  } catch (err) {
+    console.error('Fix generation error:', err.message);
+    res.status(500).json({ error: 'Failed to generate AI fixes', details: err.message });
+  }
+});
+
 // ─── AI Use Case Analysis (GPT-powered) ──────────────────────
 app.post('/api/generate-ai-analysis', async (req, res) => {
   try {

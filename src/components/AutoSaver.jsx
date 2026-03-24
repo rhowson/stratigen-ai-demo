@@ -13,13 +13,24 @@ export default function AutoSaver() {
     if (!state.isOnboarded || !state.company) return;
 
     // Filter out UI states we don't need to persist
-    const { rightPanelOpen, slidePanel, isSaving, profileLoading, competitorLoading, ...persistentState } = state;
+    const { 
+      rightPanelOpen, 
+      slidePanel, 
+      isSaving, 
+      profileLoading, 
+      competitorLoading, 
+      fixesLoading,
+      aiLoading,
+      ...persistentState 
+    } = state;
+    
     const currentStateJson = JSON.stringify(persistentState);
 
     // Skip if nothing changed from what is saved OR what is already queued to be saved
     if (lastSavedState.current === currentStateJson) return;
     if (pendingSaveJson.current === currentStateJson) return;
-
+    
+    console.log('[AutoSaver] Change detected, queuing save...');
     pendingSaveJson.current = currentStateJson;
 
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
