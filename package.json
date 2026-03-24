@@ -23,7 +23,7 @@
     "react-dom": "^19.2.4",
     "react-feather": "^2.0.10",
     "sqlite": "^5.1.1",
-    "sqlite3": "^6.0.1",
+    "sqlite3": "5.1.7",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
