@@ -277,29 +277,34 @@ app.post('/api/generate-fixes', async (req, res) => {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      temperature: 0.4,
+      temperature: 0.5,
       response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
           content: `You are a world-class Strategic Management Consultant specializing in the recruitment industry. 
-Your task is to generate high-impact, contextual "fixes" for business capabilities that are currently underperforming or experiencing pain.
+Your task is to generate high-impact, deeply contextual "fixes" for business capabilities.
 
 You will be provided with:
-1. Company Context: Description, products, services, and key differentiators.
-2. Strategic Objectives: The specific goals and mission statement defined for this transformation.
-3. Capability Gaps: Level 2 capabilities with their current maturity and specific user-reported pain points.
+1. Company Context: Description, products, services, geography, and market position.
+2. Strategic Objectives: The specific goals and mission statement.
+3. Capability Gaps: Level 2 capabilities with current maturity and user-reported pain points.
 
-For EACH capability, generate a cohesive strategy broken down into:
-- process: Concrete steps to standardize or optimize the workflow.
-- people: Training, hiring, or organizational changes needed.
-- technology: Specific software, integrations, or tools to implement.
-- data: Metrics to track, data quality improvements, or dashboard needs.
+Your output must be:
+- PERSONALIZED: Use the company name ("${companyName}") naturally within the recommendations.
+- MARKET-AWARE: Reference specific geographic or market nuances (e.g., UK labor laws, US healthcare staffing trends).
+- DATA-DRIVEN: Include "Real-world Examples" of leading companies (e.g., Hays, Randstad) or technology products (e.g., Bullhorn, Vincere, LinkedIn Recruiter, TextKernel) that excel in this specific capability.
+
+For EACH capability, generate:
+- process: Concrete steps to standardize or optimize. Reference specific methodologies.
+- people: Training, hiring, or organizational changes. Mention specific roles or skills.
+- technology: Specific software, integrations, or AI tools to implement. NAME REAL PRODUCTS.
+- data: Metrics to track, data quality improvements, or dashboards.
 
 Rules:
-1. ALIGN WITH STRATEGY: Ensure all fixes directly support the provided Strategic Objectives and mission.
-2. BE SPECIFIC to the company context (e.g., if they focus on "Renewable Energy", reflect that in the strategy).
-3. BE CONCISE. Max 2 bullet points per dimension.
+1. ALIGN WITH STRATEGY: Support the provided Strategic Objectives.
+2. BE SPECIFIC: Avoid generic advice. Mention specific tools and companies.
+3. BE CONCISE: Max 2 rich bullet points per dimension.
 4. OUTPUT JSON format:
 {
   "fixes": [
@@ -309,12 +314,12 @@ Rules:
       "l0Name": "string",
       "l1Name": "string",
       "currentMaturity": number,
-      "targetMaturity": number (usually current + 1 or +2, max 5),
+      "targetMaturity": number,
       "dimensions": {
-        "process": ["bullet 1", "bullet 2"],
-        "people": ["bullet 1", "bullet 2"],
-        "technology": ["bullet 1", "bullet 2"],
-        "data": ["bullet 1", "bullet 2"]
+        "process": ["bullet with market context"],
+        "people": ["bullet with roles"],
+        "technology": ["bullet naming real products/examples"],
+        "data": ["bullet with specific metrics"]
       }
     }
   ]

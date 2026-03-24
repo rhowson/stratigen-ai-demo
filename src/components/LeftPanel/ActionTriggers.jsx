@@ -96,9 +96,24 @@ export default function ActionTriggers() {
                 </div>
               </div>
               {card.loading && (
-                <div className="action-card-status" style={{ color: 'var(--text-tertiary)' }}>
-                  <span className="loading-dot pulsing" style={{ background: 'var(--accent-green)' }} />
-                  Analysing with GPT-4o...
+                <div className="action-card-status" style={{ color: 'var(--text-tertiary)', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="loading-dot pulsing" style={{ background: 'var(--accent-green)' }} />
+                    {card.title === 'Generate Fixes' ? state.fixProgress.status : 'Analysing with GPT-4o...'}
+                  </div>
+                  {card.title === 'Generate Fixes' && state.fixProgress.total > 0 && (
+                    <div className="progress-bar-container" style={{ width: '100%', height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div 
+                        className="progress-bar-fill" 
+                        style={{ 
+                          width: `${(state.fixProgress.current / state.fixProgress.total) * 100}%`,
+                          height: '100%',
+                          background: 'var(--accent-green)',
+                          transition: 'width 0.4s ease'
+                        }} 
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               {card.done && (

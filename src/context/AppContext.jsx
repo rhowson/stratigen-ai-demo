@@ -43,6 +43,7 @@ const initialState = {
   // Fixes
   fixes: [],
   fixesLoading: false,
+  fixProgress: { current: 0, total: 0, status: '' },
 
   // Work packages
   workPackages: [],
@@ -155,9 +156,23 @@ function reducer(state, action) {
 
     case 'SET_FIXES_LOADING':
       if (action.payload) {
-        return { ...state, fixesLoading: true, fixes: [], workPackages: [], aiOpportunities: [], regulations: [] };
+        return { 
+          ...state, 
+          fixesLoading: true, 
+          fixes: [], 
+          fixProgress: { current: 0, total: 0, status: 'Initializing...' },
+          workPackages: [], 
+          aiOpportunities: [], 
+          regulations: [] 
+        };
       }
       return { ...state, fixesLoading: false };
+
+    case 'SET_FIX_PROGRESS':
+      return { ...state, fixProgress: { ...state.fixProgress, ...action.payload } };
+
+    case 'APPEND_FIX':
+      return { ...state, fixes: [...state.fixes, action.payload] };
 
     case 'GENERATE_FIXES': {
       return { 
@@ -288,43 +303,55 @@ export function AppProvider({ children }) {
       dispatch({ type: 'SET_FIXES_LOADING', payload: true });
       try {
         // Collect all impacted capabilities
-        const impactedCapabilities = [];
+        const queue = [];
         const painsByCapability = {};
         state.painPoints.forEach(pp => {
           pp.mappedCapabilities.forEach(cap => {
             if (!painsByCapability[cap.l2Id]) {
               painsByCapability[cap.l2Id] = [];
-              impactedCapabilities.push(cap);
+              queue.push(cap);
             }
             painsByCapability[cap.l2Id].push(pp);
           });
         });
 
-        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
-        const res = await fetch(`${API_BASE}/api/generate-fixes`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            companyProfile: state.companyProfile,
-            companyName: state.company?.name,
-            impactedCapabilities,
-            painsByCapability,
-            maturityScores: state.maturityScores,
-          }),
-        });
-        const data = await res.json();
+        dispatch({ type: 'SET_FIX_PROGRESS', payload: { current: 0, total: queue.length, status: 'Starting sequential analysis...' } });
 
-        if (data.success) {
-          dispatch({ type: 'GENERATE_FIXES', payload: data.fixes });
-        } else {
-          console.error('Fix generation failed:', data.error);
-          dispatch({ type: 'SET_FIXES_LOADING', payload: false });
+        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+
+        let count = 0;
+        for (const cap of queue) {
+          count++;
+          dispatch({ type: 'SET_FIX_PROGRESS', payload: {
+            current: count,
+            status: `Analyzing ${cap.l2Name || cap.name}...`
+          }});
+
+          const res = await fetch(`${API_BASE}/api/generate-fixes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyProfile: state.companyProfile,
+              companyName: state.company?.name,
+              objectives: state.objectives,
+              impactedCapabilities: [cap], // Pass single capability for max focus
+              painsByCapability: { [cap.l2Id]: painsByCapability[cap.l2Id] },
+              maturityScores: { [cap.l2Id]: state.maturityScores[cap.l2Id] || 1 },
+            }),
+          });
+          const data = await res.json();
+
+          if (data.success && data.fixes?.[0]) {
+            dispatch({ type: 'APPEND_FIX', payload: data.fixes[0] });
+          }
         }
+
+        dispatch({ type: 'SET_FIXES_LOADING', payload: false });
       } catch (err) {
         console.error('Fix generation error:', err);
         dispatch({ type: 'SET_FIXES_LOADING', payload: false });
       }
-    }, [state.painPoints, state.company, state.companyProfile, state.maturityScores]),
+    }, [state.painPoints, state.company, state.companyProfile, state.maturityScores, state.objectives]),
     createWorkPackages: useCallback(() => dispatch({ type: 'CREATE_WORK_PACKAGES' }), []),
     generateAI: useCallback(async () => {
       dispatch({ type: 'SET_AI_LOADING', payload: true });
