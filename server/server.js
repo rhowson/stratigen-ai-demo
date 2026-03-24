@@ -346,13 +346,16 @@ For each capability, identify the single best AI use case with level classificat
 });
 
 // ─── Catch-all: serve frontend (Railway SPA support) ───────────
-app.get('/:path(.*)', (req, res) => {
-  const indexPath = path.join(distPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(200).send('Stratigen AI API is running. Build frontend with npm run build.');
-    }
-  });
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    const indexPath = path.join(distPath, 'index.html');
+    return res.sendFile(indexPath, (err) => {
+      if (err) {
+        res.status(200).send('Stratigen AI API is running. Build frontend with npm run build.');
+      }
+    });
+  }
+  next();
 });
 
 app.listen(PORT, '0.0.0.0', () => {
