@@ -450,6 +450,98 @@
   line-height: 1.6;
 }
 
+/* Platform subtitle in workspace header */
+.workspace-platform {
+  margin: 4px 0 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+}
+.workspace-platform strong {
+  color: #94a3b8;
+}
+
+/* Full prompt copy section */
+.full-prompt-section {
+  margin-top: 48px;
+  border-top: 2px solid #1e293b;
+  padding-top: 40px;
+}
+
+.full-prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.full-prompt-header h3 {
+  color: #f8fafc;
+  font-size: 1.1rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.copy-prompt-btn {
+  background: #3ECF8E;
+  color: #020617;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copy-prompt-btn:hover {
+  background: #34c57e;
+  transform: scale(1.03);
+  box-shadow: 0 8px 24px rgba(62, 207, 142, 0.35);
+}
+
+.full-prompt-box {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 28px 32px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  white-space: pre-wrap;
+  line-height: 1.75;
+  overflow-x: auto;
+}
+
+/* HITL badge in workflow steps */
+.hitl-badge {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+}
+
 .spec-action-section {
   grid-column: span 2;
   margin-top: 20px;

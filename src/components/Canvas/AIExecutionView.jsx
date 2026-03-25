@@ -161,67 +161,64 @@ export default function AIExecutionView() {
               </div>
 
               <div className="roadmap-grid">
-                {/* Level 1: Prompting */}
+                {/* Level 1: Copilot / ChatGPT Prompt */}
                 <div className="roadmap-card level-1">
                   <div className="level-badge">Level 1</div>
                   <div className="card-top">
                     <Terminal size={18} />
-                    <h3>{activePlan.implementationRoadmap.level1.title}</h3>
+                    <h3>Copilot / ChatGPT Prompt</h3>
                   </div>
                   <div className="card-description">
-                    Ready-to-use prompt for immediate task execution.
+                    A structured, copy-paste prompt for MS Copilot or ChatGPT — ready to use immediately.
                   </div>
                   <div className="card-actions">
-                    <button 
+                    <button
                       className="explore-btn"
-                      onClick={() => actions.generateAISpec(1, activePlan.implementationRoadmap.level1.prompt, activePlan.workPackageName, activePlan.strategicContext)}
+                      onClick={() => actions.generateAISpec(1, activePlan.implementationRoadmap.level1.prompt || activePlan.implementationRoadmap.level1.title, activePlan.workPackageName, activePlan.strategicContext)}
                     >
-                      Explore Details
+                      Generate Prompt
                       <ArrowRight size={14} />
-                    </button>
-                    <button className="copy-mini-btn" onClick={() => navigator.clipboard.writeText(activePlan.implementationRoadmap.level1.prompt)}>
-                      <Clipboard size={12} />
                     </button>
                   </div>
                 </div>
 
-                {/* Level 2: Workflow */}
+                {/* Level 2: Workflow Agent */}
                 <div className="roadmap-card level-2">
                   <div className="level-badge">Level 2</div>
                   <div className="card-top">
                     <List size={18} />
-                    <h3>{activePlan.implementationRoadmap.level2.title}</h3>
+                    <h3>Copilot Studio Workflow Agent</h3>
                   </div>
                   <div className="card-description">
-                    Multi-step workflow with human-in-the-loop governance.
+                    A saveable multi-step workflow agent definition for MS Copilot Studio or Power Automate.
                   </div>
                   <div className="card-actions">
-                    <button 
+                    <button
                       className="explore-btn"
                       onClick={() => actions.generateAISpec(2, activePlan.implementationRoadmap.level2.title, activePlan.workPackageName, activePlan.strategicContext)}
                     >
-                      Explore Details
+                      Generate Workflow
                       <ArrowRight size={14} />
                     </button>
                   </div>
                 </div>
 
-                {/* Level 3: Agent */}
+                {/* Level 3: Autonomous Agent Builder */}
                 <div className="roadmap-card level-3">
                   <div className="level-badge">Level 3</div>
                   <div className="card-top">
                     <Cpu size={18} />
-                    <h3>{activePlan.implementationRoadmap.level3.title}</h3>
+                    <h3>Autonomous Agent Builder</h3>
                   </div>
                   <div className="card-description">
-                    Autonomous agent with persona and guardrail alignment.
+                    Full build instructions for Claude Desktop or OpenClaw to construct and deploy an autonomous agent.
                   </div>
                   <div className="card-actions">
-                    <button 
+                    <button
                       className="explore-btn"
-                      onClick={() => actions.generateAISpec(3, activePlan.implementationRoadmap.level3.agentRole, activePlan.workPackageName, activePlan.strategicContext)}
+                      onClick={() => actions.generateAISpec(3, activePlan.implementationRoadmap.level3.agentRole || activePlan.implementationRoadmap.level3.title, activePlan.workPackageName, activePlan.strategicContext)}
                     >
-                      Explore Details
+                      Generate Agent Spec
                       <ArrowRight size={14} />
                     </button>
                   </div>
@@ -298,39 +295,45 @@ export default function AIExecutionView() {
   );
 }
 
+const LEVEL_PLATFORM = {
+  1: 'MS Copilot / ChatGPT',
+  2: 'MS Copilot Studio',
+  3: 'Claude Desktop / OpenClaw',
+};
+
+const LEVEL_TITLE = {
+  1: 'Copilot / ChatGPT Prompt',
+  2: 'Copilot Studio Workflow Agent',
+  3: 'Autonomous Agent Builder Spec',
+};
+
 function AISpecWorkspace({ spec, onClose }) {
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const fullPrompt = spec.fullPrompt || [
+    `## Role\n${spec.role}`,
+    `## Context\n${spec.context}`,
+    `## Task\n${spec.task}`,
+    `## Constraints\n${spec.constraints || spec.context}`,
+    `## Output Format\n${spec.outputFormat || spec.formatStyle}`,
+    `## Examples\n${spec.examples}`,
+  ].join('\n\n');
+
+  const handleCopyPrompt = () => {
+    navigator.clipboard.writeText(fullPrompt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const handleExportMD = () => {
-    const content = `# AI Implementation Spec: ${spec.wpName} (Level ${spec.level})
-    
-## Role
-${spec.role}
-
-## Task
-${spec.task}
-
-## Context
-${spec.context}
-
-## Format / Style
-${spec.formatStyle}
-
-## Examples
-${spec.examples}
-
-${spec.level === 2 ? `## Prompt Chain\n${spec.promptChain?.map((s, i) => `### Step ${i + 1}\n${s}`).join('\n\n')}` : ''}
-
-${spec.level === 3 ? `## Agent Configuration\nPersona: ${spec.agentConfig?.persona}\n\n### Red Line Guardrails\n${spec.agentConfig?.redLines?.map(r => `- ${r}`).join('\n')}` : ''}
-
----
-*Generated by Stratigen AI Strategic Engine*`;
-
+    const content = `# AI Prompt Spec: ${spec.wpName} — Level ${spec.level} (${LEVEL_TITLE[spec.level]})\n\n${fullPrompt}\n\n---\n*Generated by Stratigen AI Strategic Engine*`;
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `AI-Spec-${spec.wpName.replace(/\s+/g, '-')}.md`;
+    a.download = `AI-Prompt-L${spec.level}-${spec.wpName.replace(/\s+/g, '-')}.md`;
     a.click();
   };
 
@@ -340,7 +343,10 @@ ${spec.level === 3 ? `## Agent Configuration\nPersona: ${spec.agentConfig?.perso
         <div className="workspace-header">
           <div className="header-left">
             <span className={`level-badge-mini level-${spec.level}`}>Level {spec.level}</span>
-            <h2>AI Tactical Specification</h2>
+            <div>
+              <h2>{LEVEL_TITLE[spec.level]}</h2>
+              <p className="workspace-platform">Target platform: <strong>{LEVEL_PLATFORM[spec.level]}</strong></p>
+            </div>
           </div>
           <div className="header-actions">
             <button className="fs-btn" onClick={() => setIsFullScreen(!isFullScreen)}>
@@ -354,68 +360,102 @@ ${spec.level === 3 ? `## Agent Configuration\nPersona: ${spec.agentConfig?.perso
         </div>
 
         <div className="workspace-scroll-area">
+          {/* Prompt Structure Sections */}
           <div className="spec-grid">
             <div className="spec-section">
-              <label><UserCheck size={12} /> Role</label>
+              <label><UserCheck size={12} /> Role (Persona)</label>
               <p>{spec.role}</p>
             </div>
             <div className="spec-section">
-              <label><Target size={12} /> Task</label>
-              <p>{spec.task}</p>
-            </div>
-            <div className="spec-section large">
-              <label><Info size={12} /> Context & Guardrails</label>
+              <label><Info size={12} /> Context (Background)</label>
               <p>{spec.context}</p>
             </div>
             <div className="spec-section">
-              <label><FileText size={12} /> Format & Style</label>
-              <p>{spec.formatStyle}</p>
+              <label><Target size={12} /> Task (Goal)</label>
+              <p>{spec.task}</p>
             </div>
             <div className="spec-section">
-              <label><Zap size={12} /> Examples</label>
-              <div className="example-box">{spec.examples}</div>
+              <label><Lock size={12} /> Constraints (Limits)</label>
+              <p>{spec.constraints || spec.context}</p>
             </div>
-
-            <div className="spec-action-section">
-              <button className="export-md-btn" onClick={handleExportMD}>
-                <Download size={14} />
-                Export Markdown Spec (.md)
-              </button>
-              <p className="export-hint">Optimised for CoPilot, Claude Projects, and OpenClaw</p>
+            <div className="spec-section">
+              <label><FileText size={12} /> Output Format (Style)</label>
+              <p>{spec.outputFormat || spec.formatStyle}</p>
+            </div>
+            <div className="spec-section large">
+              <label><Zap size={12} /> Examples (Few-Shot)</label>
+              <div className="example-box">{spec.examples}</div>
             </div>
           </div>
 
-          {spec.level === 2 && spec.promptChain && (
+          {/* Level 2: Workflow Steps */}
+          {spec.level === 2 && spec.workflowSteps && spec.workflowSteps.length > 0 && (
             <div className="extra-section">
-              <h3><List size={14} /> Prompt Chain Architecture</h3>
+              <h3><List size={14} /> Workflow Steps — Save as Agent in {LEVEL_PLATFORM[2]}</h3>
               <div className="chain-list">
-                {spec.promptChain.map((step, i) => (
+                {spec.workflowSteps.map((step, i) => (
                   <div key={i} className="chain-step">
-                    <div className="step-tag">Step {i + 1}</div>
-                    <pre>{step}</pre>
+                    <div className="step-tag">Step {step.stepNumber || i + 1}: {step.stepName}</div>
+                    <pre>{step.stepPrompt}</pre>
+                    {step.humanCheckpoint && (
+                      <div className="hitl-badge">
+                        <UserCheck size={11} /> Human checkpoint: {step.humanCheckpoint}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {spec.level === 3 && spec.agentConfig && (
+          {/* Level 3: Agent Build Instructions */}
+          {spec.level === 3 && (
             <div className="extra-section">
-              <h3><Lock size={14} /> Autonomous Agent Config</h3>
+              <h3><Cpu size={14} /> Agent Build Instructions — {LEVEL_PLATFORM[3]}</h3>
               <div className="agent-config-card">
-                <div className="config-item">
-                  <label>Persona Definition</label>
-                  <p>{spec.agentConfig.persona}</p>
-                </div>
-                <div className="config-item">
-                  <label>Active Guardrails (Red Lines)</label>
-                  <ul>
-                    {spec.agentConfig.redLines?.map((r, i) => <li key={i}>{r}</li>)}
-                  </ul>
-                </div>
+                {spec.tools && spec.tools.length > 0 && (
+                  <div className="config-item">
+                    <label>Required Tools &amp; Integrations</label>
+                    <ul>{spec.tools.map((t, i) => <li key={i}>{t}</li>)}</ul>
+                  </div>
+                )}
+                {spec.memoryStrategy && (
+                  <div className="config-item">
+                    <label>Memory Strategy</label>
+                    <p>{spec.memoryStrategy}</p>
+                  </div>
+                )}
+                {spec.escalationRules && spec.escalationRules.length > 0 && (
+                  <div className="config-item">
+                    <label>Escalation Rules (Human-in-the-Loop Triggers)</label>
+                    <ul>{spec.escalationRules.map((r, i) => <li key={i}>{r}</li>)}</ul>
+                  </div>
+                )}
+                {spec.agentBuildInstructions && (
+                  <div className="config-item">
+                    <label>Step-by-Step Build Guide</label>
+                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>{spec.agentBuildInstructions}</pre>
+                  </div>
+                )}
               </div>
             </div>
           )}
+
+          {/* Full Prompt Copy Box */}
+          <div className="full-prompt-section">
+            <div className="full-prompt-header">
+              <h3><Clipboard size={14} /> Complete Prompt — ready to paste into {LEVEL_PLATFORM[spec.level]}</h3>
+              <div className="prompt-actions">
+                <button className="copy-prompt-btn" onClick={handleCopyPrompt}>
+                  {copied ? <><CheckSquare size={14} /> Copied!</> : <><Clipboard size={14} /> Copy Full Prompt</>}
+                </button>
+                <button className="export-md-btn" onClick={handleExportMD}>
+                  <Download size={14} /> Export .md
+                </button>
+              </div>
+            </div>
+            <pre className="full-prompt-box">{fullPrompt}</pre>
+          </div>
         </div>
       </div>
     </div>
