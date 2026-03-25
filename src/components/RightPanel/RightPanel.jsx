@@ -4,6 +4,7 @@ import KPIImpact from './KPIImpact';
 import ImpactOverview from './ImpactOverview';
 import RiskIndicators from './RiskIndicators';
 import CompetitorInsights from './CompetitorInsights';
+import GuardrailsRepository from './GuardrailsRepository';
 import './RightPanel.css';
 
 export default function RightPanel() {
@@ -38,6 +39,7 @@ export default function RightPanel() {
         </button>
       </div>
       <div className="rp-content">
+        <GuardrailsRepository />
         <CompetitorInsights />
         <ImpactOverview />
         <KPIImpact />

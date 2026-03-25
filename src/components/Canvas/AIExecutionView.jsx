@@ -21,15 +21,23 @@ import {
   UserCheck,
   List,
   ExternalLink,
-  Clipboard
+  Clipboard,
+  Search,
+  ArrowRight,
+  Plus,
+  Trash2,
+  Edit2,
+  Maximize,
+  Minimize,
+  X
 } from 'react-feather';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import './AIExecutionView.css';
 
 export default function AIExecutionView() {
-  const { state } = useApp();
-  const { aiExecutionPlan, execLoading, execProgress } = state;
+  const { state, actions } = useApp();
+  const { aiExecutionPlan, execLoading, execProgress, selectedSpec, specLoading } = state;
   const [activeIndex, setActiveIndex] = useState(0);
   const pdfExportRef = useRef();
 
@@ -160,12 +168,19 @@ export default function AIExecutionView() {
                     <Terminal size={18} />
                     <h3>{activePlan.implementationRoadmap.level1.title}</h3>
                   </div>
-                  <div className="prompt-container">
-                    <div className="prompt-label">Engine Prompt</div>
-                    <pre className="prompt-text">{activePlan.implementationRoadmap.level1.prompt}</pre>
-                    <button className="copy-prompt-btn" onClick={() => navigator.clipboard.writeText(activePlan.implementationRoadmap.level1.prompt)}>
+                  <div className="card-description">
+                    Ready-to-use prompt for immediate task execution.
+                  </div>
+                  <div className="card-actions">
+                    <button 
+                      className="explore-btn"
+                      onClick={() => actions.generateAISpec(1, activePlan.implementationRoadmap.level1.prompt, activePlan.workPackageName, activePlan.strategicContext)}
+                    >
+                      Explore Details
+                      <ArrowRight size={14} />
+                    </button>
+                    <button className="copy-mini-btn" onClick={() => navigator.clipboard.writeText(activePlan.implementationRoadmap.level1.prompt)}>
                       <Clipboard size={12} />
-                      Copy Prompt
                     </button>
                   </div>
                 </div>
@@ -177,19 +192,17 @@ export default function AIExecutionView() {
                     <List size={18} />
                     <h3>{activePlan.implementationRoadmap.level2.title}</h3>
                   </div>
-                  <div className="workflow-steps">
-                    {activePlan.implementationRoadmap.level2.steps.map((step, i) => (
-                      <div key={i} className="workflow-step">
-                        <div className="step-num">{i + 1}</div>
-                        <div className="step-info">
-                          <div className="step-task">{step.task}</div>
-                          <div className="step-hitl">
-                            <UserCheck size={10} />
-                            Governance: {step.hitl}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="card-description">
+                    Multi-step workflow with human-in-the-loop governance.
+                  </div>
+                  <div className="card-actions">
+                    <button 
+                      className="explore-btn"
+                      onClick={() => actions.generateAISpec(2, activePlan.implementationRoadmap.level2.title, activePlan.workPackageName, activePlan.strategicContext)}
+                    >
+                      Explore Details
+                      <ArrowRight size={14} />
+                    </button>
                   </div>
                 </div>
 
@@ -200,21 +213,17 @@ export default function AIExecutionView() {
                     <Cpu size={18} />
                     <h3>{activePlan.implementationRoadmap.level3.title}</h3>
                   </div>
-                  <div className="agent-details">
-                    <div className="agent-persona">
-                      <label>Autonomous Role</label>
-                      <p>{activePlan.implementationRoadmap.level3.agentRole}</p>
-                    </div>
-                    <div className="agent-tasks">
-                      <label>Key Responsibilities</label>
-                      <ul>
-                        {activePlan.implementationRoadmap.level3.keyTasks.map((t, i) => <li key={i}>{t}</li>)}
-                      </ul>
-                    </div>
-                    <div className="agent-intervention">
-                      <label>Human Intervention</label>
-                      <p>{activePlan.implementationRoadmap.level3.intervention}</p>
-                    </div>
+                  <div className="card-description">
+                    Autonomous agent with persona and guardrail alignment.
+                  </div>
+                  <div className="card-actions">
+                    <button 
+                      className="explore-btn"
+                      onClick={() => actions.generateAISpec(3, activePlan.implementationRoadmap.level3.agentRole, activePlan.workPackageName, activePlan.strategicContext)}
+                    >
+                      Explore Details
+                      <ArrowRight size={14} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -272,6 +281,141 @@ export default function AIExecutionView() {
               items={activePlan.executionOutline.dataRequirements} 
             />
           </div>
+        </div>
+      </div>
+
+      {/* AI Spec Workspace Overlay */}
+      {selectedSpec && <AISpecWorkspace spec={selectedSpec} onClose={actions.closeSpecWorkspace} />}
+      {specLoading && (
+        <div className="spec-loading-overlay">
+          <div className="loading-content">
+            <Cpu size={24} className="spin" />
+            <p>Architecting Detailed AI Specification...</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AISpecWorkspace({ spec, onClose }) {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  const handleExportMD = () => {
+    const content = `# AI Implementation Spec: ${spec.wpName} (Level ${spec.level})
+    
+## Role
+${spec.role}
+
+## Task
+${spec.task}
+
+## Context
+${spec.context}
+
+## Format / Style
+${spec.formatStyle}
+
+## Examples
+${spec.examples}
+
+${spec.level === 2 ? `## Prompt Chain\n${spec.promptChain?.map((s, i) => `### Step ${i + 1}\n${s}`).join('\n\n')}` : ''}
+
+${spec.level === 3 ? `## Agent Configuration\nPersona: ${spec.agentConfig?.persona}\n\n### Red Line Guardrails\n${spec.agentConfig?.redLines?.map(r => `- ${r}`).join('\n')}` : ''}
+
+---
+*Generated by Stratigen AI Strategic Engine*`;
+
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `AI-Spec-${spec.wpName.replace(/\s+/g, '-')}.md`;
+    a.click();
+  };
+
+  return (
+    <div className={`spec-workspace-overlay ${isFullScreen ? 'full-screen' : ''}`}>
+      <div className="spec-workspace-content animate-slide-up">
+        <div className="workspace-header">
+          <div className="header-left">
+            <span className={`level-badge-mini level-${spec.level}`}>Level {spec.level}</span>
+            <h2>AI Tactical Specification</h2>
+          </div>
+          <div className="header-actions">
+            <button className="fs-btn" onClick={() => setIsFullScreen(!isFullScreen)}>
+              {isFullScreen ? <Minimize size={16} /> : <Maximize size={16} />}
+              {isFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+            </button>
+            <button className="close-btn" onClick={onClose}>
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="workspace-scroll-area">
+          <div className="spec-grid">
+            <div className="spec-section">
+              <label><UserCheck size={12} /> Role</label>
+              <p>{spec.role}</p>
+            </div>
+            <div className="spec-section">
+              <label><Target size={12} /> Task</label>
+              <p>{spec.task}</p>
+            </div>
+            <div className="spec-section large">
+              <label><Info size={12} /> Context & Guardrails</label>
+              <p>{spec.context}</p>
+            </div>
+            <div className="spec-section">
+              <label><FileText size={12} /> Format & Style</label>
+              <p>{spec.formatStyle}</p>
+            </div>
+            <div className="spec-section">
+              <label><Zap size={12} /> Examples</label>
+              <div className="example-box">{spec.examples}</div>
+            </div>
+
+            <div className="spec-action-section">
+              <button className="export-md-btn" onClick={handleExportMD}>
+                <Download size={14} />
+                Export Markdown Spec (.md)
+              </button>
+              <p className="export-hint">Optimised for CoPilot, Claude Projects, and OpenClaw</p>
+            </div>
+          </div>
+
+          {spec.level === 2 && spec.promptChain && (
+            <div className="extra-section">
+              <h3><List size={14} /> Prompt Chain Architecture</h3>
+              <div className="chain-list">
+                {spec.promptChain.map((step, i) => (
+                  <div key={i} className="chain-step">
+                    <div className="step-tag">Step {i + 1}</div>
+                    <pre>{step}</pre>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {spec.level === 3 && spec.agentConfig && (
+            <div className="extra-section">
+              <h3><Lock size={14} /> Autonomous Agent Config</h3>
+              <div className="agent-config-card">
+                <div className="config-item">
+                  <label>Persona Definition</label>
+                  <p>{spec.agentConfig.persona}</p>
+                </div>
+                <div className="config-item">
+                  <label>Active Guardrails (Red Lines)</label>
+                  <ul>
+                    {spec.agentConfig.redLines?.map((r, i) => <li key={i}>{r}</li>)}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

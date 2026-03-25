@@ -568,6 +568,49 @@ Content Guidelines:
   }
 });
 
+// New Endpoint: Generate Detailed AI Spec
+app.post('/api/generate-ai-spec', async (req, res) => {
+  const { level, suggestion, workPackageName, context, guardrails } = req.body;
+
+  try {
+    const systemPrompt = `You are an elite AI Solutions Architect. Your task is to expand a high-level AI implementation suggestion into a detailed, technical specification for a professional environment.
+    
+    Level ${level} Implementation Focus:
+    ${level === 1 ? 'Focus on a single, high-performance LLM PROMPT.' : level === 2 ? 'Focus on a PROMPT CHAIN / WORKFLOW with Human-in-the-loop checkpoints.' : 'Focus on an AUTONOMOUS AGENT PERSONA with strict guardrails.'}
+    
+    Structure your response as a JSON object with:
+    - role: Define who the AI is (e.g., "You are an expert recruitment copywriter").
+    - task: Clear, action-oriented verbs (e.g., "Summarize candidate CVs against these 5 criteria...").
+    - context: Background information, goals, and constraints. Include any provided Guardrails.
+    - formatStyle: Define output structure (Table, JSON, Email) and tone (Professional, Empathetic).
+    - examples: A few-shot sample showing the desired style/output.
+    ${level === 2 ? '- promptChain: Array of steps, each with a specific sub-prompt.' : ''}
+    ${level === 3 ? '- agentConfig: { persona: string, tools: string[], redLines: string[] }' : ''}
+
+    Incorporate these company Guardrails (Red Lines):
+    ${(guardrails || []).map(g => `- ${g}`).join('\n')}
+
+    Context: Improving ${workPackageName}.
+    Strategic Context: ${JSON.stringify(context)}
+    Suggestion: ${suggestion}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Generate a detailed Level ${level} Spec for: ${suggestion}` }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    res.json({ success: true, spec: JSON.parse(completion.choices[0].message.content) });
+  } catch (error) {
+    console.error('AI Spec Generation Error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to generate AI spec' });
+  }
+});
+
+
 // ─── Catch-all: serve frontend (Railway SPA support) ───────────
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {

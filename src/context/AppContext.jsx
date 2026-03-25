@@ -68,6 +68,15 @@ const initialState = {
   // Slide-in panel
   slidePanel: null,   // { type, data }
 
+  // AI Implementation Spec Workspace
+  selectedSpec: null,
+  specLoading: false,
+  guardrails: [
+    'Ensure all AI-generated content is reviewed by a human before external distribution.',
+    'Do not include personally identifiable information (PII) in LLM prompts.',
+    'All AI-generated code must pass through existing security scanning pipelines.'
+  ],
+
   // View state
   expandedL0: null,
   rightPanelOpen: false, // Start closed for cleaner UI
@@ -325,6 +334,27 @@ function reducer(state, action) {
 
     case 'SET_EXEC_PLAN':
       return { ...state, aiExecutionPlan: action.payload, execLoading: false };
+
+    case 'ADD_GUARDRAIL':
+      return { ...state, guardrails: [...state.guardrails, action.payload] };
+
+    case 'UPDATE_GUARDRAIL':
+      return { 
+        ...state, 
+        guardrails: state.guardrails.map((g, i) => i === action.payload.index ? action.payload.text : g) 
+      };
+
+    case 'DELETE_GUARDRAIL':
+      return { 
+        ...state, 
+        guardrails: state.guardrails.filter((_, i) => i !== action.payload) 
+      };
+
+    case 'SET_SELECTED_SPEC':
+      return { ...state, selectedSpec: action.payload };
+
+    case 'SET_SPEC_LOADING':
+      return { ...state, specLoading: action.payload };
 
     case 'UPDATE_MATURITY':
       return {
@@ -598,6 +628,38 @@ export function AppProvider({ children }) {
         dispatch({ type: 'SET_EXEC_LOADING', payload: false });
       }
     }, [state.workPackages, state.company, state.companyProfile, state.objectives]),
+
+    addGuardrail: useCallback((text) => dispatch({ type: 'ADD_GUARDRAIL', payload: text }), []),
+    updateGuardrail: useCallback((index, text) => dispatch({ type: 'UPDATE_GUARDRAIL', payload: { index, text } }), []),
+    deleteGuardrail: useCallback((index) => dispatch({ type: 'DELETE_GUARDRAIL', payload: index }), []),
+    
+    generateAISpec: useCallback(async (level, suggestion, wpName, context) => {
+      dispatch({ type: 'SET_SPEC_LOADING', payload: true });
+      try {
+        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        const res = await fetch(`${API_BASE}/api/generate-ai-spec`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            level,
+            suggestion,
+            workPackageName: wpName,
+            context,
+            guardrails: state.guardrails
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          dispatch({ type: 'SET_SELECTED_SPEC', payload: { ...data.spec, level, suggestion, wpName } });
+        }
+      } catch (err) {
+        console.error('Spec generation error:', err);
+      } finally {
+        dispatch({ type: 'SET_SPEC_LOADING', payload: false });
+      }
+    }, [state.guardrails]),
+    
+    closeSpecWorkspace: useCallback(() => dispatch({ type: 'SET_SELECTED_SPEC', payload: null }), []),
   };
 
   return (
