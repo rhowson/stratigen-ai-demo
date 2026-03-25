@@ -519,21 +519,39 @@ Return a JSON object:
       "ethical": { "process": "...", "people": "...", "technology": "..." },
       "financial": { "process": "...", "people": "...", "technology": "..." }
     },
+    "implementationRoadmap": {
+      "level1": {
+        "title": "Direct LLM Prompting",
+        "prompt": "Provide a specific, ready-to-use, professional LLM prompt to address a core task in this package."
+      },
+      "level2": {
+        "title": "Sequential Workflow",
+        "steps": [
+          { "task": "Step description", "prompt": "Prompt for this step", "hitl": "Human-in-the-loop / Regulatory control point" }
+        ]
+      },
+      "level3": {
+        "title": "Autonomous AI Agent",
+        "agentRole": "Professional persona of the agent",
+        "keyTasks": ["3-4 tasks for end-to-end delivery"],
+        "intervention": "Description of why human intervention is minimal"
+      }
+    },
     "executionOutline": {
-      "decisions": ["List of key strategic/technical choices required"],
-      "artefacts": ["Documents, models, or configurations to be created"],
-      "technologies": ["Specific AI stacks, tools, or vendors"],
-      "dataRequirements": ["Data sets, quality standards, and lineage required"]
+      "decisions": ["List of key choices"],
+      "artefacts": ["Output documents/models"],
+      "technologies": ["Tools/Stacks"],
+      "dataRequirements": ["Data sets/Standards"]
     }
   }
 }
 
 Content Guidelines:
-- Strategic: Focus on competitive advantage and alignment with ${JSON.stringify(objectives)}.
-- Legal: Focus on IP, data privacy (GDPR), and contract terms.
-- Ethical: Focus on bias, transparency, and human-in-the-loop.
-- Financial: Focus on ROI, TCO, and capital vs operational expenditure.
-- Perspectives: Ensure 'People' covers skill gaps, 'Process' covers workflow evolution, and 'Technology' covers stack integration.`
+- Analysis: Keep each perspective (People, Process, Tech) to 1 concise, high-impact sentence to make space for the Solutions.
+- Level 1: Generate a literal "Copy-Paste" style prompt.
+- Level 2: Define a logical flow of 3-4 steps. Ensure HITL points address the Legal/Ethical constraints.
+- Level 3: Focus on sophisticated agentic behavior (e.g., self-correction, tool use).
+- Use UK English (standardise, optimise, etc.).`
         },
         {
           role: 'user',

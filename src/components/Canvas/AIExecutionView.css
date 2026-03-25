@@ -140,10 +140,231 @@
 .main-scroll-area {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-3xl);
-  max-width: 1200px;
+  padding: var(--space-2xl) var(--space-3xl);
+  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
+}
+
+/* Implementation Roadmap */
+.implementation-roadmap {
+  margin-bottom: var(--space-3xl);
+}
+
+.roadmap-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--space-xl);
+  color: var(--accent-green);
+}
+
+.roadmap-header h2 {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+}
+
+.roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xl);
+}
+
+.roadmap-card {
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.roadmap-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent-green);
+}
+
+.level-badge {
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: var(--text-primary);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.level-1 { border-top: 4px solid var(--gray-400); }
+.level-2 { border-top: 4px solid var(--accent-green); }
+.level-3 { border-top: 4px solid #8B5CF6; /* Purple for Agents */ }
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+}
+
+.card-top h3 {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Level 1: Prompt styles */
+.prompt-container {
+  background: var(--bg-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.prompt-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.prompt-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  background: transparent;
+  border: none;
+  margin-bottom: 12px;
+  flex: 1;
+}
+
+.copy-prompt-btn {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-prompt-btn:hover {
+  background: var(--bg-panel);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+/* Level 2: Workflow styles */
+.workflow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.workflow-step {
+  display: flex;
+  gap: 12px;
+  position: relative;
+}
+
+.workflow-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 24px;
+  bottom: -12px;
+  width: 1px;
+  background: var(--border-subtle);
+}
+
+.step-num {
+  width: 24px;
+  height: 24px;
+  background: var(--accent-green-pale);
+  color: var(--accent-green-dark);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.step-info {
+  flex: 1;
+}
+
+.step-task {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.step-hitl {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-style: italic;
+}
+
+/* Level 3: Agent styles */
+.agent-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.agent-persona label,
+.agent-tasks label,
+.agent-intervention label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.agent-persona p,
+.agent-intervention p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.agent-tasks ul {
+  padding-left: 16px;
+  margin: 0;
+}
+
+.agent-tasks li {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: 4px;
 }
 
 /* Analysis Grid */

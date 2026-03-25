@@ -15,7 +15,13 @@ import {
   Heart,
   DollarSign,
   Target,
-  Cpu
+  Cpu,
+  Terminal,
+  Activity,
+  UserCheck,
+  List,
+  ExternalLink,
+  Clipboard
 } from 'react-feather';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -58,7 +64,11 @@ export default function AIExecutionView() {
     );
   }
 
-  const activePlan = aiExecutionPlan[activeIndex];
+  // Safely determine the active plan to prevent out-of-bounds crashes
+  const safeIndex = activeIndex >= aiExecutionPlan.length ? 0 : activeIndex;
+  const activePlan = aiExecutionPlan[safeIndex];
+
+  if (!activePlan) return null;
 
   const handleExportPDF = async () => {
     const input = pdfExportRef.current;
@@ -134,6 +144,83 @@ export default function AIExecutionView() {
         </div>
 
         <div className="main-scroll-area" ref={pdfExportRef}>
+          {/* Implementation Roadmap (The "How-To") */}
+          {activePlan.implementationRoadmap && (
+            <div className="implementation-roadmap animate-fade-in">
+              <div className="roadmap-header">
+                <Activity size={20} />
+                <h2>AI Implementation Blueprint</h2>
+              </div>
+
+              <div className="roadmap-grid">
+                {/* Level 1: Prompting */}
+                <div className="roadmap-card level-1">
+                  <div className="level-badge">Level 1</div>
+                  <div className="card-top">
+                    <Terminal size={18} />
+                    <h3>{activePlan.implementationRoadmap.level1.title}</h3>
+                  </div>
+                  <div className="prompt-container">
+                    <div className="prompt-label">Engine Prompt</div>
+                    <pre className="prompt-text">{activePlan.implementationRoadmap.level1.prompt}</pre>
+                    <button className="copy-prompt-btn" onClick={() => navigator.clipboard.writeText(activePlan.implementationRoadmap.level1.prompt)}>
+                      <Clipboard size={12} />
+                      Copy Prompt
+                    </button>
+                  </div>
+                </div>
+
+                {/* Level 2: Workflow */}
+                <div className="roadmap-card level-2">
+                  <div className="level-badge">Level 2</div>
+                  <div className="card-top">
+                    <List size={18} />
+                    <h3>{activePlan.implementationRoadmap.level2.title}</h3>
+                  </div>
+                  <div className="workflow-steps">
+                    {activePlan.implementationRoadmap.level2.steps.map((step, i) => (
+                      <div key={i} className="workflow-step">
+                        <div className="step-num">{i + 1}</div>
+                        <div className="step-info">
+                          <div className="step-task">{step.task}</div>
+                          <div className="step-hitl">
+                            <UserCheck size={10} />
+                            Governance: {step.hitl}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Level 3: Agent */}
+                <div className="roadmap-card level-3">
+                  <div className="level-badge">Level 3</div>
+                  <div className="card-top">
+                    <Cpu size={18} />
+                    <h3>{activePlan.implementationRoadmap.level3.title}</h3>
+                  </div>
+                  <div className="agent-details">
+                    <div className="agent-persona">
+                      <label>Autonomous Role</label>
+                      <p>{activePlan.implementationRoadmap.level3.agentRole}</p>
+                    </div>
+                    <div className="agent-tasks">
+                      <label>Key Responsibilities</label>
+                      <ul>
+                        {activePlan.implementationRoadmap.level3.keyTasks.map((t, i) => <li key={i}>{t}</li>)}
+                      </ul>
+                    </div>
+                    <div className="agent-intervention">
+                      <label>Human Intervention</label>
+                      <p>{activePlan.implementationRoadmap.level3.intervention}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 4-Dimensional Analysis Grid */}
           <div className="analysis-grid">
             <DimensionCard 
