@@ -115,7 +115,9 @@ app.post('/api/competitor-analysis', async (req, res) => {
       messages: [
         {
           role: 'system',
-          content: `You are a competitive intelligence analyst specialising in the recruitment industry. Given a company profile, identify their top 5 competitors. Return JSON:
+          content: `You are a competitive intelligence analyst specialising in the recruitment industry. 
+STRICT RULE: Use UK English spelling at all times (e.g., prioritise, organisational, programme, centre, labour).
+Given a company profile, identify their top 5 competitors. Return JSON:
 {
   "competitors": [
     {
@@ -285,6 +287,8 @@ app.post('/api/generate-fixes', async (req, res) => {
           content: `You are a world-class Strategic Management Consultant specializing in the recruitment industry. 
 Your task is to generate high-impact, deeply contextual "fixes" for business capabilities.
 
+STRICT RULE: Use UK English spelling at all times (e.g., standardise, optimise, organisational, programme).
+
 You will be provided with:
 1. Company Context: Description, products, services, geography, and market position.
 2. Strategic Objectives: The specific goals and mission statement.
@@ -344,6 +348,62 @@ Rules:
   }
 });
 
+// ─── AI-Powered Work Package Generation ────────────────────────
+app.post('/api/generate-work-packages', async (req, res) => {
+  try {
+    const { companyName, l1Domain, l0Domain, fixes, objectives, companyProfile } = req.body;
+
+    console.log(`[AI Work Packages] Generating consulting package for ${l1Domain} (${companyName})...`);
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      temperature: 0.6,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a Senior transformation Programme Manager and Strategic Consultant.
+Your task is to synthesize a group of capability fixes into a single, cohesive, formal Work Package.
+
+STRICT RULE: Use UK English spelling at all times (e.g., standardise, optimise, organisational, programme, centre, labour).
+
+You will be provided with:
+1. Company & Strategy: Name, profile, and strategic objectives.
+2. Fixes: A list of capabilities and their specific multidimensional recommendations (People, Process, Tech, Data).
+
+Return a JSON object:
+{
+    "workPackage": {
+      "id": "formal-wp-id",
+      "name": "Professional name for this package",
+      "l1Domain": "${l1Domain}",
+      "l0Domain": "${l0Domain}",
+    "description": "High-level summary of the transformation (2 sentences).",
+    "keyActivities": ["4-5 high-impact activities to execute"],
+    "keyOutputs": ["3-4 tangible deliverables"],
+    "resourcesRequired": ["Roles and specific skills needed"],
+    "benefits": ["3-4 strategic benefits aligned with company objectives"],
+    "priorityScore": number (1-10 based on urgency and gap),
+    "priority": "High" | "Medium" | "Low" (based on score: 8+ High, 5-7 Medium, <5 Low),
+    "fixes": [] // Mirror the input fixes back
+  }
+}`
+        },
+        {
+          role: 'user',
+          content: `Company: ${companyName}\nStrategic Objectives: ${JSON.stringify(objectives)}\nProfile: ${JSON.stringify(companyProfile)}\n\nL1 Domain: ${l1Domain}\nL0 Domain: ${l0Domain}\n\nUnderlying Fixes:\n${JSON.stringify(fixes)}`
+        }
+      ]
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    res.json({ success: true, workPackage: result.workPackage });
+  } catch (err) {
+    console.error('Work package generation error:', err.message);
+    res.status(500).json({ error: 'Failed to generate work packages', details: err.message });
+  }
+});
+
 // ─── AI Use Case Analysis (GPT-powered) ──────────────────────
 app.post('/api/generate-ai-analysis', async (req, res) => {
   try {
@@ -372,6 +432,7 @@ app.post('/api/generate-ai-analysis', async (req, res) => {
         {
           role: 'system',
           content: `You are an AI transformation strategist specialising in the recruitment industry. 
+STRICT RULE: Use UK English spelling at all times (e.g., standardise, optimise, organisational, programme, centre, labour).
 For each business capability provided, identify the most impactful AI enhancement opportunity.
 Classify each opportunity into one of three levels:
 - Level 1 (Prompt Engineering): Simple AI-assisted tasks — co-pilot style, human in the loop. E.g. AI-drafted emails, summarisation, assisted screening.
@@ -422,6 +483,70 @@ For each capability, identify the single best AI use case with level classificat
   } catch (err) {
     console.error('[AI Analysis] Error:', err.message);
     res.status(500).json({ error: 'Failed to generate AI analysis', details: err.message });
+  }
+});
+
+// ─── AI Execution Plan Generation ─────────────────────────────
+app.post('/api/generate-ai-execution-plan', async (req, res) => {
+  try {
+    const { companyName, companyProfile, workPackage, objectives } = req.body;
+
+    console.log(`[AI Execution Plan] Generating strategy for ${workPackage.name} (${companyName})...`);
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      temperature: 0.6,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a Senior Digital Transformation Strategist and AI Implementation Consultant.
+Your task is to create a granular, boardroom-ready "AI Execution Plan" for a specific Work Package.
+
+STRICT RULE: Use UK English spelling at all times (e.g., standardise, optimise, organisational, programme, centre, labour).
+
+Focus on the AI components within the work package and assess how AI is used to solve the underlying pain points.
+
+Return a JSON object:
+{
+  "plan": {
+    "workPackageId": "${workPackage.id}",
+    "workPackageName": "${workPackage.name}",
+    "strategicContext": "1 sentence on why this AI initiative is critical for the North Star vision.",
+    "analysis": {
+      "strategic": { "process": "...", "people": "...", "technology": "..." },
+      "legal": { "process": "...", "people": "...", "technology": "..." },
+      "ethical": { "process": "...", "people": "...", "technology": "..." },
+      "financial": { "process": "...", "people": "...", "technology": "..." }
+    },
+    "executionOutline": {
+      "decisions": ["List of key strategic/technical choices required"],
+      "artefacts": ["Documents, models, or configurations to be created"],
+      "technologies": ["Specific AI stacks, tools, or vendors"],
+      "dataRequirements": ["Data sets, quality standards, and lineage required"]
+    }
+  }
+}
+
+Content Guidelines:
+- Strategic: Focus on competitive advantage and alignment with ${JSON.stringify(objectives)}.
+- Legal: Focus on IP, data privacy (GDPR), and contract terms.
+- Ethical: Focus on bias, transparency, and human-in-the-loop.
+- Financial: Focus on ROI, TCO, and capital vs operational expenditure.
+- Perspectives: Ensure 'People' covers skill gaps, 'Process' covers workflow evolution, and 'Technology' covers stack integration.`
+        },
+        {
+          role: 'user',
+          content: `Company: ${companyName}\nProfile: ${JSON.stringify(companyProfile)}\n\nWork Package: ${JSON.stringify(workPackage)}`
+        }
+      ]
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    res.json({ success: true, plan: result.plan });
+  } catch (err) {
+    console.error('Execution plan generation error:', err.message);
+    res.status(500).json({ error: 'Failed to generate execution plan', details: err.message });
   }
 });
 

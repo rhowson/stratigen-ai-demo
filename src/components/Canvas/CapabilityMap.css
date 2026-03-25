@@ -1,7 +1,11 @@
 .capability-map {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 2px; /* Tight accordion stacking */
+  gap: 2px;
+  min-height: 0; /* Enable shrinking to fit and scrolling */
 }
 
 /* ===== L0 Accordion ===== */

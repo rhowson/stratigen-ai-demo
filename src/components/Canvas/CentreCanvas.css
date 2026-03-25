@@ -1,7 +1,8 @@
 .canvas {
   flex: 1;
-  height: 100%;
-  overflow-y: auto;
+  min-width: 0; /* CRITICAL: Allow horizontal shrinking */
+  min-height: 0; /* CRITICAL: Allow vertical shrinking */
+  overflow: hidden;
   background: var(--bg-secondary);
   position: relative;
   display: flex;
@@ -141,8 +142,12 @@
 /* Canvas body */
 .canvas-body {
   flex: 1;
-  overflow-y: auto;
-  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  min-width: 0;
+  min-height: 0; /* CRITICAL: Enable children to shrink and scroll */
 }
 
 /* Workstreams */
@@ -298,16 +303,20 @@
 .wp-view {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 .wp-list {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--space-sm);
+  gap: var(--space-md);
+  padding: var(--space-lg);
   background: var(--bg-secondary);
+  min-height: 0;
 }
 
 .ws-section {
@@ -458,15 +467,19 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 .ai-grid {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-md);
+  padding: var(--space-lg);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   align-content: start;
   gap: var(--space-md);
+  min-height: 0;
 }
 .ai-card {
   border: 1px solid var(--border-default);

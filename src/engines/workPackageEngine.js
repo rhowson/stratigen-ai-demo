@@ -45,7 +45,10 @@ export function generateWorkPackages(fixes) {
       ]);
 
       const impactScore = l1Fixes.reduce((sum, f) => sum + (f.targetMaturity - f.currentMaturity), 0);
-      const avgGap = l1Fixes.reduce((sum, f) => sum + (f.benchmark.bestInClass - f.currentMaturity), 0) / l1Fixes.length;
+      const avgGap = l1Fixes.reduce((sum, f) => {
+        const bestInClass = f.benchmark?.bestInClass || 5;
+        return sum + (bestInClass - f.currentMaturity);
+      }, 0) / l1Fixes.length;
 
       totalGap += avgGap * l1Fixes.length;
       totalCaps += l1Fixes.length;

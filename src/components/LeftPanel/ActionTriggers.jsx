@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Tool, Package, Cpu, CheckCircle, Settings, Loader, RefreshCw, AlertTriangle } from 'react-feather';
+import WorkPackageSelectorModal from '../WorkPackageSelectorModal';
 
 export default function ActionTriggers() {
   const { state, actions } = useApp();
   const [confirmAction, setConfirmAction] = useState(null);
+  const [showSelector, setShowSelector] = useState(false);
 
   const hasPainPoints = state.painPoints.length > 0;
   const hasFixes = state.fixes.length > 0;
   const hasWorkPackages = state.workPackages.length > 0;
-  const hasAI = state.aiOpportunities.length > 0;
-  const aiLoading = state.aiLoading;
+  const hasAIPlan = !!state.aiExecutionPlan;
+  
+  const execLoading = state.execLoading;
   const fixesLoading = state.fixesLoading;
+  const wpLoading = state.wpLoading;
 
   const actionCards = [
     {
@@ -30,21 +34,22 @@ export default function ActionTriggers() {
       title: 'Package Work',
       desc: 'Group fixes into work packages with priority scoring and dependency mapping.',
       action: actions.createWorkPackages,
-      enabled: hasPainPoints,
-      done: hasWorkPackages,
-      doneLabel: `${state.workPackages.length} workstreams created`,
+      enabled: hasFixes && !wpLoading,
+      done: hasWorkPackages && !wpLoading,
+      doneLabel: `${state.workPackages.reduce((a, ws) => a + ws.packages.length, 0)} packages in ${state.workPackages.length} workstreams`,
+      loading: wpLoading,
       warning: 'Regenerating work packages will overwrite your existing packages. Continue?',
     },
     {
       icon: Cpu,
-      title: 'Accelerate with AI',
-      desc: 'Use GPT-4o to identify AI opportunities at Prompt, Workflow, and Agent levels.',
-      action: actions.generateAI,
-      enabled: hasFixes && !aiLoading,
-      done: hasAI && !aiLoading,
-      loading: aiLoading,
-      doneLabel: `${state.aiOpportunities.length} AI opportunities`,
-      warning: 'Regenerating AI Analysis will overwrite your existing AI uses cases. Continue?',
+      title: 'Build AI Execution Plan',
+      desc: 'Select work packages to create a deep strategic implementation document including legal and ethical considerations.',
+      action: () => setShowSelector(true),
+      enabled: hasWorkPackages && !execLoading,
+      done: hasAIPlan && !execLoading,
+      loading: execLoading,
+      doneLabel: `Execution plan ready for ${state.aiExecutionPlan?.length || 0} packages`,
+      warning: 'Updating the Execution Plan will overwrite the current analysis. Continue?',
     },
   ];
 
@@ -65,11 +70,30 @@ export default function ActionTriggers() {
     }
   };
 
+  const handleSelectorConfirm = (selectedIds, selectedPkgs) => {
+    setShowSelector(false);
+    actions.generateExecutionPlan(selectedPkgs);
+  };
+
+  const anyLoading = fixesLoading || wpLoading || execLoading;
+
   return (
     <div className="input-section">
-      <div className="input-section-title">
-        <Settings size={15} />
-        Actions
+      <div className="input-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Settings size={15} />
+          Actions
+        </div>
+        {anyLoading && (
+          <button 
+            className="reset-ai-btn" 
+            onClick={actions.resetLoadingStates}
+            title="Reset stuck AI processes"
+          >
+            <RefreshCw size={12} />
+            Reset AI
+          </button>
+        )}
       </div>
       {!hasPainPoints && (
         <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: 'var(--space-md)', lineHeight: 1.6 }}>
@@ -99,14 +123,20 @@ export default function ActionTriggers() {
                 <div className="action-card-status" style={{ color: 'var(--text-tertiary)', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span className="loading-dot pulsing" style={{ background: 'var(--accent-green)' }} />
-                    {card.title === 'Generate Fixes' ? state.fixProgress.status : 'Analysing with GPT-4o...'}
+                    {card.title === 'Generate Fixes' ? state.fixProgress.status : 
+                     card.title === 'Package Work' ? state.wpProgress.status : 
+                     state.execProgress.status}
                   </div>
-                  {card.title === 'Generate Fixes' && state.fixProgress.total > 0 && (
+                  {(card.loading && (card.title === 'Generate Fixes' || card.title === 'Package Work' || card.title === 'Build AI Execution Plan')) && (
                     <div className="progress-bar-container" style={{ width: '100%', height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
                       <div 
                         className="progress-bar-fill" 
                         style={{ 
-                          width: `${(state.fixProgress.current / state.fixProgress.total) * 100}%`,
+                          width: `${((
+                            card.title === 'Generate Fixes' ? state.fixProgress.current / state.fixProgress.total :
+                            card.title === 'Package Work' ? state.wpProgress.current / state.wpProgress.total :
+                            state.execProgress.current / state.execProgress.total
+                          ) || 0) * 100}%`,
                           height: '100%',
                           background: 'var(--accent-green)',
                           transition: 'width 0.4s ease'
@@ -151,6 +181,15 @@ export default function ActionTriggers() {
           </div>
         </div>
       )}
+
+      {/* Selector Modal */}
+      <WorkPackageSelectorModal
+        isOpen={showSelector}
+        onClose={() => setShowSelector(false)}
+        workPackages={state.workPackages}
+        onConfirm={handleSelectorConfirm}
+        loading={execLoading}
+      />
     </div>
   );
 }

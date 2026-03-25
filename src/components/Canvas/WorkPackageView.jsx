@@ -96,23 +96,62 @@ export default function WorkPackageView() {
                           </div>
                         </div>
 
+                        {/* Consulting Details */}
+                        {pkgExpanded && (
+                          <div className="pkg-details animate-fade-in" style={{ padding: 'var(--space-md)', borderTop: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.02)' }}>
+                            <div className="pkg-desc" style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-lg)', lineHeight: 1.5 }}>
+                              {pkg.description}
+                            </div>
+                            
+                            <div className="pkg-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                              <div className="pkg-col">
+                                <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Key Activities</h4>
+                                <ul style={{ paddingLeft: '18px', margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-main)', lineHeight: 1.6 }}>
+                                  {pkg.keyActivities?.map((a, i) => <li key={`act-${i}`}>{a}</li>)}
+                                </ul>
+                              </div>
+                              <div className="pkg-col">
+                                <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Key Outputs</h4>
+                                <ul style={{ paddingLeft: '18px', margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-main)', lineHeight: 1.6 }}>
+                                  {pkg.keyOutputs?.map((o, i) => <li key={`out-${i}`}>{o}</li>)}
+                                </ul>
+                              </div>
+                              <div className="pkg-col">
+                                <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Resources Required</h4>
+                                <ul style={{ paddingLeft: '18px', margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-main)', lineHeight: 1.6 }}>
+                                  {pkg.resourcesRequired?.map((r, i) => <li key={`res-${i}`}>{r}</li>)}
+                                </ul>
+                              </div>
+                              <div className="pkg-col">
+                                <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Strategic Benefits</h4>
+                                <ul style={{ paddingLeft: '18px', margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-main)', lineHeight: 1.6 }}>
+                                  {pkg.benefits?.map((b, i) => <li key={`ben-${i}`}>{b}</li>)}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Capability + fix rows */}
                         {pkgExpanded && (
-                          <div className="pkg-fixes animate-fade-in">
-                            {pkg.fixes.map((fix, fi) => (
-                              <div key={fi} className="fix-row">
+                          <div className="pkg-fixes animate-fade-in" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                            <div style={{ padding: '8px 12px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', background: 'rgba(0,0,0,0.03)' }}>
+                              Impacted Capabilities
+                            </div>
+                            {pkg.fixes?.map((fix, fi) => (
+                              <div key={fix.capabilityId || fi} className="fix-row">
                                 <div className="fix-row-header">
                                   <AlertTriangle size={11} className="badge-warning" />
                                   <span className="fix-cap-name">{fix.capabilityName}</span>
-                                  <span className="fix-pain-count">{fix.painPoints.length} issue{fix.painPoints.length !== 1 ? 's' : ''}</span>
+                                  <span className="fix-pain-count">{(fix.painPoints?.length || 0)} issue{(fix.painPoints?.length || 0) !== 1 ? 's' : ''}</span>
                                 </div>
                                 <div className="fix-dimensions">
-                                  {Object.entries(fix.dimensions).map(([dim, items]) => items.length > 0 && (
+                                  {Object.entries(fix.dimensions || {}).map(([dim, items]) => Array.isArray(items) && items.length > 0 && (
                                     <div key={dim} className="fix-dim-group">
                                       <span className="fix-dim-label">{dim.charAt(0).toUpperCase() + dim.slice(1)}</span>
                                       <ul className="fix-dim-items">
                                         {items.map((item, ii) => (
-                                          <li key={ii}>{item}</li>
+                                          <li key={`${fix.capabilityId}-${dim}-${ii}`}>{item}</li>
                                         ))}
                                       </ul>
                                     </div>

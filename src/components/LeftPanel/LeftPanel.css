@@ -86,6 +86,35 @@
   gap: var(--space-sm);
 }
 
+.reset-ai-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-ai-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.reset-ai-btn svg {
+  transition: transform 0.4s ease;
+}
+
+.reset-ai-btn:hover svg {
+  transform: rotate(180deg);
+}
 /* Section card */
 .input-section {
   animation: fadeIn 300ms ease-out;

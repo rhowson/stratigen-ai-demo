@@ -47,6 +47,8 @@ const initialState = {
 
   // Work packages
   workPackages: [],
+  wpLoading: false,
+  wpProgress: { current: 0, total: 0, status: '' },
 
   // AI layer
   aiOpportunities: [],
@@ -56,6 +58,12 @@ const initialState = {
   // Regulatory
   regulations: [],
   showRegulatoryLayer: false,
+
+  // AI Execution Plan
+  selectedWorkPackageIds: [],
+  aiExecutionPlan: null,
+  execLoading: false,
+  execProgress: { current: 0, total: 0, status: '' },
 
   // Slide-in panel
   slidePanel: null,   // { type, data }
@@ -70,9 +78,33 @@ function reducer(state, action) {
     case 'LOAD_PROJECT':
       return { 
         ...action.payload, 
+        // Always reset transient loading states on project load to prevent hang states
+        fixesLoading: false,
+        wpLoading: false,
+        aiLoading: false,
+        execLoading: false,
+        isSaving: false,
+        profileLoading: false,
+        competitorLoading: false,
+        fixProgress: { current: 0, total: 0, status: '' },
+        wpProgress: { current: 0, total: 0, status: '' },
+        execProgress: { current: 0, total: 0, status: '' },
         rightPanelOpen: state.rightPanelOpen, 
-        slidePanel: null,
-        isSaving: false 
+        slidePanel: null
+      };
+    case 'RESET_LOADING':
+      return {
+        ...state,
+        fixesLoading: false,
+        wpLoading: false,
+        aiLoading: false,
+        execLoading: false,
+        isSaving: false,
+        profileLoading: false,
+        competitorLoading: false,
+        fixProgress: { current: 0, total: 0, status: '' },
+        wpProgress: { current: 0, total: 0, status: '' },
+        execProgress: { current: 0, total: 0, status: '' },
       };
     case 'SET_PROJECT_ID':
       return { ...state, projectId: action.payload };
@@ -115,7 +147,7 @@ function reducer(state, action) {
 
     case 'ADD_PAIN_POINT': {
       const painPoint = {
-        id: `pp-${Date.now()}`,
+        id: `pp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         text: action.payload.text,
         mappedCapabilities: action.payload.mappedCapabilities,
         timestamp: new Date().toISOString(),
@@ -185,31 +217,51 @@ function reducer(state, action) {
       };
     }
 
-    case 'CREATE_WORK_PACKAGES': {
-      const fixes = state.fixes.length > 0 ? state.fixes : (() => {
-        // Auto-generate fixes if not yet generated
-        const allImpactedCaps = [];
-        const painsByCapability = {};
-        state.painPoints.forEach(pp => {
-          pp.mappedCapabilities.forEach(cap => {
-            if (!painsByCapability[cap.l2Id]) {
-              painsByCapability[cap.l2Id] = [];
-              allImpactedCaps.push(cap);
-            }
-            painsByCapability[cap.l2Id].push(pp);
-          });
-        });
-        return generateAllFixes(allImpactedCaps, painsByCapability, state.maturityScores);
-      })();
+    case 'SET_WP_LOADING':
+      if (action.payload) {
+        return { 
+          ...state, 
+          wpLoading: true, 
+          workPackages: [], 
+          wpProgress: { current: 0, total: 0, status: 'Grouping capabilities...' },
+          aiOpportunities: [], 
+          regulations: [] 
+        };
+      }
+      return { ...state, wpLoading: false };
 
-      const workPackages = generateWorkPackages(fixes);
-      return { 
-        ...state, 
-        fixes, 
-        workPackages,
-        aiOpportunities: [],
-        regulations: [],
-      };
+    case 'SET_WP_PROGRESS':
+      return { ...state, wpProgress: { ...state.wpProgress, ...action.payload } };
+
+    case 'APPEND_WP': {
+      const wp = { ...action.payload, id: action.payload.id || `pkg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` };
+      const existingWS = state.workPackages.find(ws => ws.l0Domain === wp.l0Domain);
+      
+      if (existingWS) {
+        const updatedWS = {
+          ...existingWS,
+          packages: [...existingWS.packages, wp],
+          totalFixes: existingWS.totalFixes + wp.fixes.length,
+          avgMaturityGap: ((parseFloat(existingWS.avgMaturityGap) * existingWS.packages.length + wp.priorityScore) / (existingWS.packages.length + 1)).toFixed(1)
+        };
+        return {
+          ...state,
+          workPackages: state.workPackages.map(ws => ws.l0Domain === wp.l0Domain ? updatedWS : ws)
+        };
+      } else {
+        const newWS = {
+          id: `ws-${wp.l0Domain.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+          name: `${wp.l0Domain} Transformation`,
+          l0Domain: wp.l0Domain,
+          packages: [wp],
+          totalFixes: wp.fixes.length,
+          avgMaturityGap: wp.priorityScore.toFixed(1)
+        };
+        return {
+          ...state,
+          workPackages: [...state.workPackages, newWS].sort((a,b) => b.avgMaturityGap - a.avgMaturityGap)
+        };
+      }
     }
 
     case 'SET_AI_LOADING':
@@ -257,6 +309,22 @@ function reducer(state, action) {
 
     case 'SET_EXPANDED_L0':
       return { ...state, expandedL0: state.expandedL0 === action.payload ? null : action.payload };
+
+    case 'SET_SELECTED_WPS':
+      return { ...state, selectedWorkPackageIds: action.payload };
+
+    case 'SET_EXEC_LOADING':
+      return { 
+        ...state, 
+        execLoading: action.payload,
+        execProgress: action.payload ? { current: 0, total: 0, status: 'Initialising analysis...' } : state.execProgress
+      };
+
+    case 'SET_EXEC_PROGRESS':
+      return { ...state, execProgress: { ...state.execProgress, ...action.payload } };
+
+    case 'SET_EXEC_PLAN':
+      return { ...state, aiExecutionPlan: action.payload, execLoading: false };
 
     case 'UPDATE_MATURITY':
       return {
@@ -342,7 +410,12 @@ export function AppProvider({ children }) {
           const data = await res.json();
 
           if (data.success && data.fixes?.[0]) {
-            dispatch({ type: 'APPEND_FIX', payload: data.fixes[0] });
+            const fixWithPains = {
+              ...data.fixes[0],
+              painPoints: painsByCapability[cap.l2Id] || [],
+              benchmark: benchmarkProfiles[cap.l2Id] || { industryBaseline: 3, bestInClass: 5 }
+            };
+            dispatch({ type: 'APPEND_FIX', payload: fixWithPains });
           }
         }
 
@@ -352,7 +425,67 @@ export function AppProvider({ children }) {
         dispatch({ type: 'SET_FIXES_LOADING', payload: false });
       }
     }, [state.painPoints, state.company, state.companyProfile, state.maturityScores, state.objectives]),
-    createWorkPackages: useCallback(() => dispatch({ type: 'CREATE_WORK_PACKAGES' }), []),
+    createWorkPackages: useCallback(async () => {
+      if (state.fixes.length === 0) return;
+      
+      dispatch({ type: 'SET_WP_LOADING', payload: true });
+      try {
+        // Group fixes by L1 domain
+        const l1Groups = {};
+        state.fixes.forEach(fix => {
+          if (!l1Groups[fix.l1Name]) {
+            l1Groups[fix.l1Name] = {
+              l1Name: fix.l1Name,
+              l0Name: fix.l0Name,
+              fixes: []
+            };
+          }
+          l1Groups[fix.l1Name].fixes.push(fix);
+        });
+
+        const queue = Object.values(l1Groups);
+        dispatch({ type: 'SET_WP_PROGRESS', payload: { current: 0, total: queue.length, status: 'Starting packaging...' } });
+
+        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        
+        let count = 0;
+        for (const group of queue) {
+          count++;
+          dispatch({ type: 'SET_WP_PROGRESS', payload: { 
+            current: count, 
+            status: `Packaging ${group.l1Name}...` 
+          }});
+
+          const res = await fetch(`${API_BASE}/api/generate-work-packages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyName: state.company?.name,
+              l1Domain: group.l1Name,
+              l0Domain: group.l0Name,
+              fixes: group.fixes,
+              objectives: state.objectives,
+              companyProfile: state.companyProfile
+            }),
+          });
+          const data = await res.json();
+
+          if (data.success && data.workPackage) {
+            // Re-attach the rich fixes from our local group to the work package
+            const wpWithFixes = {
+              ...data.workPackage,
+              fixes: group.fixes
+            };
+            dispatch({ type: 'APPEND_WP', payload: wpWithFixes });
+          }
+        }
+
+        dispatch({ type: 'SET_WP_LOADING', payload: false });
+      } catch (err) {
+        console.error('Work packaging error:', err);
+        dispatch({ type: 'SET_WP_LOADING', payload: false });
+      }
+    }, [state.fixes, state.company, state.objectives, state.companyProfile]),
     generateAI: useCallback(async () => {
       dispatch({ type: 'SET_AI_LOADING', payload: true });
       try {
@@ -419,6 +552,52 @@ export function AppProvider({ children }) {
     setExpandedL0: useCallback((id) => dispatch({ type: 'SET_EXPANDED_L0', payload: id }), []),
     updateMaturity: useCallback((capabilityId, score) => dispatch({ type: 'UPDATE_MATURITY', payload: { capabilityId, score } }), []),
     toggleRightPanel: useCallback((isOpen) => dispatch({ type: 'TOGGLE_RIGHT_PANEL', payload: isOpen }), []),
+    resetLoadingStates: useCallback(() => dispatch({ type: 'RESET_LOADING' }), []),
+    
+    setSelectedWorkPackages: useCallback((ids) => dispatch({ type: 'SET_SELECTED_WPS', payload: ids }), []),
+    generateExecutionPlan: useCallback(async (selectedWPs) => {
+      dispatch({ type: 'SET_EXEC_LOADING', payload: true });
+      try {
+        if (!selectedWPs || selectedWPs.length === 0) {
+          dispatch({ type: 'SET_EXEC_LOADING', payload: false });
+          return;
+        }
+
+        dispatch({ type: 'SET_EXEC_PROGRESS', payload: { current: 0, total: selectedWPs.length, status: 'Starting sequential execution analysis...' } });
+
+        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        const results = [];
+
+        let count = 0;
+        for (const wp of selectedWPs) {
+          count++;
+          dispatch({ type: 'SET_EXEC_PROGRESS', payload: {
+            current: count,
+            status: `Analysing ${wp.name}...`
+          }});
+
+          const res = await fetch(`${API_BASE}/api/generate-ai-execution-plan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyName: state.company?.name,
+              companyProfile: state.companyProfile,
+              workPackage: wp,
+              objectives: state.objectives
+            }),
+          });
+          const data = await res.json();
+          if (data.success && data.plan) {
+            results.push(data.plan);
+          }
+        }
+
+        dispatch({ type: 'SET_EXEC_PLAN', payload: results });
+      } catch (err) {
+        console.error('Execution plan error:', err);
+        dispatch({ type: 'SET_EXEC_LOADING', payload: false });
+      }
+    }, [state.workPackages, state.company, state.companyProfile, state.objectives]),
   };
 
   return (

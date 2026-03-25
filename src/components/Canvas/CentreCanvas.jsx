@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Hexagon, Target, Map, Layers, Cpu } from 'react-feather';
+import { Hexagon, Target, Map, Layers, Zap } from 'react-feather';
 import CapabilityMap from './CapabilityMap';
 import WorkPackageView from './WorkPackageView';
-import AIUseCaseView from './AIUseCaseView';
+import AIExecutionView from './AIExecutionView';
 import './CentreCanvas.css';
 
 const VIEWS = [
   { id: 'capabilities', label: 'Capability Map', icon: Map },
   { id: 'workpackages', label: 'Work Packages',  icon: Layers },
-  { id: 'ai',          label: 'AI Use Cases',    icon: Cpu },
+  { id: 'execution',     label: 'AI Execution Plan', icon: Zap },
 ];
 
 export default function CentreCanvas() {
   const { state } = useApp();
-  const { isOnboarded, objectives, workPackages, aiOpportunities } = state;
+  const { isOnboarded, objectives, workPackages, aiExecutionPlan } = state;
   const [view, setView] = useState('capabilities');
 
   if (!isOnboarded) {
@@ -31,7 +31,7 @@ export default function CentreCanvas() {
 
   const viewCounts = {
     workpackages: workPackages.length,
-    ai: aiOpportunities.length,
+    execution: aiExecutionPlan?.length || 0,
   };
 
   return (
@@ -74,7 +74,7 @@ export default function CentreCanvas() {
       <div className="canvas-body">
         {view === 'capabilities' && <CapabilityMap />}
         {view === 'workpackages' && <WorkPackageView />}
-        {view === 'ai'           && <AIUseCaseView />}
+        {view === 'execution'    && <AIExecutionView />}
       </div>
     </div>
   );
