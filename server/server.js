@@ -572,35 +572,73 @@ Content Guidelines:
 app.post('/api/generate-ai-spec', async (req, res) => {
   const { level, suggestion, workPackageName, context, guardrails } = req.body;
 
+  const levelConfig = {
+    1: {
+      platform: 'MS Copilot / ChatGPT',
+      focus: 'Generate a single, complete, copy-paste-ready prompt for a business user to enter directly into MS Copilot, ChatGPT, or a similar LLM. This must be a polished, standalone prompt that a non-technical user can use immediately without any modification.',
+      extraFields: '',
+    },
+    2: {
+      platform: 'MS Copilot Studio / Power Automate',
+      focus: 'Generate a complete workflow agent definition that can be configured in MS Copilot Studio or a similar workflow builder and saved as a reusable agent. The workflowSteps array defines each step of the automated workflow.',
+      extraFields: `- workflowSteps: Array of 3-5 objects, each with:
+    { "stepNumber": number, "stepName": string, "stepPrompt": string (a complete prompt for this step following Role/Context/Task/Constraints/OutputFormat structure), "humanCheckpoint": string (what a human must review/approve at this step) }`,
+    },
+    3: {
+      platform: 'Claude Desktop / OpenClaw',
+      focus: 'Generate complete build instructions for creating an autonomous agent in Claude Desktop or OpenClaw. This is the full system prompt and configuration a developer uses to build and deploy the agent.',
+      extraFields: `- tools: Array of tool/integration names the agent requires (e.g., "CRM API", "Calendar", "Email")
+- memoryStrategy: How the agent retains and uses context across sessions
+- escalationRules: Array of specific conditions that must trigger human escalation
+- agentBuildInstructions: Step-by-step guide (3-5 steps) for configuring this agent in Claude Desktop or OpenClaw`,
+    },
+  };
+
+  const cfg = levelConfig[level];
+
   try {
-    const systemPrompt = `You are an elite AI Solutions Architect. Your task is to expand a high-level AI implementation suggestion into a detailed, technical specification for a professional environment.
-    
-    Level ${level} Implementation Focus:
-    ${level === 1 ? 'Focus on a single, high-performance LLM PROMPT.' : level === 2 ? 'Focus on a PROMPT CHAIN / WORKFLOW with Human-in-the-loop checkpoints.' : 'Focus on an AUTONOMOUS AGENT PERSONA with strict guardrails.'}
-    
-    Structure your response as a JSON object with:
-    - role: Define who the AI is (e.g., "You are an expert recruitment copywriter").
-    - task: Clear, action-oriented verbs (e.g., "Summarize candidate CVs against these 5 criteria...").
-    - context: Provide 2-3 paragraphs of background information, goals, and constraints. This MUST be a plain string, not an object. Include any provided Guardrails.
-    - formatStyle: Define output structure (Table, JSON, Email) and tone (Professional, Empathetic).
-    - examples: A few-shot sample showing the desired style/output.
-    ${level === 2 ? '- promptChain: Array of steps, each with a specific sub-prompt.' : ''}
-    ${level === 3 ? '- agentConfig: { persona: string, tools: string[], redLines: string[] }' : ''}
+    const systemPrompt = `You are an elite AI Solutions Architect specialising in practical AI implementation for recruitment businesses. Use UK English throughout (standardise, optimise, organise, programme, labour, centre).
 
-    Incorporate these company Guardrails (Red Lines):
-    ${(guardrails || []).map(g => `- ${g}`).join('\n')}
+Your task: Generate a Level ${level} AI implementation specification for the work package "${workPackageName}".
 
-    Context: Improving ${workPackageName}.
-    Strategic Context: ${JSON.stringify(context)}
-    Suggestion: ${suggestion}`;
+TARGET PLATFORM: ${cfg.platform}
+PURPOSE: ${cfg.focus}
+
+ALL outputs MUST follow this exact 6-section prompt structure:
+1. Role (Persona) — Who is the AI acting as? Write a specific, credible professional persona relevant to recruitment (e.g., "You are an experienced senior recruiter with 10 years specialising in technology placements...")
+2. Context (Background) — The business situation, pain points being addressed, company context, and why this matters
+3. Task (Goal) — The specific action required. Use clear, action-oriented language with measurable outcomes
+4. Constraints (Limits) — Hard limits, compliance requirements, red lines, and quality gates
+5. Output Format (Style) — Exact structure of the output (table, email, scorecard, workflow config, etc.) and tone
+6. Examples (Few-Shot) — A concrete, realistic sample showing the desired quality and style of output. Must be specific to recruitment, not generic placeholder text.
+
+Guardrails to embed in the Constraints section:
+${(guardrails || []).map(g => `- ${g}`).join('\n')}
+
+Work Package: ${workPackageName}
+Strategic Context: ${JSON.stringify(context)}
+Suggestion: ${suggestion}
+
+Return a JSON object with exactly these fields:
+- role: string — the persona section text
+- context: string — the background section text
+- task: string — the goal/action section text
+- constraints: string — limits, red lines, and guardrails (include the guardrails above)
+- outputFormat: string — exact output structure and tone
+- examples: string — a concrete, realistic few-shot example (at least 3-4 sentences of real example content)
+- fullPrompt: string — the COMPLETE formatted prompt combining ALL 6 sections with markdown headers (## Role, ## Context, ## Task, ## Constraints, ## Output Format, ## Examples), ready to copy-paste into ${cfg.platform}
+${cfg.extraFields}
+
+CRITICAL: The fullPrompt must be genuinely useful and specific — not generic boilerplate. Ground every section in the actual pain points, capabilities, and recruitment domain context provided.`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: 'gpt-4o',
+      temperature: 0.7,
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Generate a detailed Level ${level} Spec for: ${suggestion}` }
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Generate a Level ${level} prompt specification targeting ${cfg.platform} for: ${suggestion}` }
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: 'json_object' }
     });
 
     res.json({ success: true, spec: JSON.parse(completion.choices[0].message.content) });
