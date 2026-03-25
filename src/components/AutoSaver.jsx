@@ -41,12 +41,16 @@ export default function AutoSaver() {
         if (!state.projectId) {
           // Create new project
           const newId = await createProject(state.company.name, persistentState);
+          // Persist the ID for session restoration
+          localStorage.setItem('stratigen_last_project_id', newId);
           // Pre-emptively update lastSavedState so the incoming setProjectId doesn't trigger a duplicate save
           lastSavedState.current = JSON.stringify({ ...persistentState, projectId: newId });
           actions.setProjectId(newId);
         } else {
           // Update existing
           await updateProject(state.projectId, state.company.name, persistentState);
+          // Ensure ID is persisted even for updates
+          localStorage.setItem('stratigen_last_project_id', state.projectId);
           lastSavedState.current = currentStateJson;
         }
       } catch (err) {

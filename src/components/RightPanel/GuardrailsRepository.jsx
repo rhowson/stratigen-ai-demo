@@ -26,9 +26,9 @@ export default function GuardrailsRepository() {
   };
 
   return (
-    <div className="kp-card animate-fade-in" style={{ marginBottom: '16px', borderLeft: '4px solid #f87171' }}>
+    <div className="kp-card animate-fade-in" style={{ marginBottom: '16px', borderLeft: '4px solid #64748b' }}>
       <div className="kp-card-header">
-        <div className="kp-card-title" style={{ color: '#f87171' }}>
+        <div className="kp-card-title" style={{ color: '#334155' }}>
           <Lock size={14} />
           <span>AI Guardrails (Red Lines)</span>
         </div>
@@ -45,10 +45,10 @@ export default function GuardrailsRepository() {
         </p>
 
         <div className="guardrail-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {guardrails.map((g, i) => (
+          {(guardrails || []).map((g, i) => (
             <div key={i} className="guardrail-item" style={{ 
-              background: 'rgba(248, 113, 113, 0.05)', 
-              border: '1px solid rgba(248, 113, 113, 0.1)',
+              background: '#f8fafc', 
+              border: '1px solid #e2e8f0',
               borderRadius: '8px',
               padding: '10px',
               display: 'flex',
@@ -63,9 +63,9 @@ export default function GuardrailsRepository() {
                     onChange={(e) => setEditText(e.target.value)}
                     style={{ 
                       flex: 1, 
-                      background: 'var(--bg-panel)', 
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
+                      background: '#ffffff', 
+                      border: '1px solid #cbd5e1',
+                      color: '#1e293b',
                       fontSize: '0.8rem',
                       padding: '4px 8px',
                       borderRadius: '4px'
@@ -77,7 +77,7 @@ export default function GuardrailsRepository() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{g}</span>
+                  <span style={{ fontSize: '0.8rem', color: '#475569', lineHeight: '1.4' }}>{g}</span>
                   <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
                     <button className="icon-btn-edit" onClick={() => { setEditingIndex(i); setEditText(g); }}>
                       <Edit2 size={12} />
@@ -100,9 +100,9 @@ export default function GuardrailsRepository() {
                 onChange={(e) => setNewGuardrail(e.target.value)}
                 style={{ 
                   width: '100%',
-                  background: 'var(--bg-panel)', 
-                  border: '1px solid #f87171',
-                  color: 'var(--text-primary)',
+                  background: '#ffffff', 
+                  border: '1px solid #64748b',
+                  color: '#1e293b',
                   fontSize: '0.8rem',
                   padding: '8px',
                   borderRadius: '6px',

@@ -1,26 +1,28 @@
-import { AppProvider } from './context/AppContext';
+import { useApp } from './context/AppContext';
 import TopBar from './components/TopBar';
 import LeftPanel from './components/LeftPanel/LeftPanel';
 import CentreCanvas from './components/Canvas/CentreCanvas';
 import RightPanel from './components/RightPanel/RightPanel';
 import SlideInPanel from './components/SlideInPanel';
 import AutoSaver from './components/AutoSaver';
+import WorkPackageWorkspace from './components/Canvas/WorkPackageWorkspace';
 import './App.css';
 
 function App() {
+  const { state } = useApp();
+  
   return (
-    <AppProvider>
+    <div className={`app ${state?.leftPanelCollapsed ? 'collapsed-left' : ''}`}>
       <AutoSaver />
-      <div className="app">
-        <TopBar />
-        <div className="app-body">
-          <LeftPanel />
-          <CentreCanvas />
-          <RightPanel />
-        </div>
-        <SlideInPanel />
+      <TopBar />
+      <div className="app-body">
+        <LeftPanel />
+        <CentreCanvas />
+        <RightPanel />
       </div>
-    </AppProvider>
+      <SlideInPanel />
+      <WorkPackageWorkspace />
+    </div>
   );
 }
 

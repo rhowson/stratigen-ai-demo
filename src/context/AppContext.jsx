@@ -1,9 +1,10 @@
-import { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { capabilityModel, benchmarkProfiles, kpiLibrary, INDUSTRY_NAME } from '../data/recruitmentModel';
 import { generateAllFixes } from '../engines/fixEngine';
 import { generateWorkPackages } from '../engines/workPackageEngine';
 import { generateAIOpportunities } from '../engines/aiEngine';
 import { assessRegulations } from '../engines/regulatoryEngine';
+import { fetchProjectById } from '../services/projectService';
 
 const AppContext = createContext(null);
 
@@ -71,6 +72,7 @@ const initialState = {
   // AI Implementation Spec Workspace
   selectedSpec: null,
   specLoading: false,
+  selectedWorkPackage: null, // For the new immersive modal
   guardrails: [
     'Ensure all AI-generated content is reviewed by a human before external distribution.',
     'Do not include personally identifiable information (PII) in LLM prompts.',
@@ -79,19 +81,25 @@ const initialState = {
 
   // View state
   expandedL0: null,
-  rightPanelOpen: false, // Start closed for cleaner UI
+  rightPanelOpen: false, 
+  leftPanelCollapsed: false,
 };
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'TOGGLE_LEFT_PANEL':
+      return { ...state, leftPanelCollapsed: !state.leftPanelCollapsed };
+
     case 'LOAD_PROJECT':
       return { 
+        ...initialState, // Ensure new fields like guardrails are present
         ...action.payload, 
         // Always reset transient loading states on project load to prevent hang states
-        fixesLoading: false,
         wpLoading: false,
         aiLoading: false,
         execLoading: false,
+        specLoading: false,
+        selectedSpec: null,
         isSaving: false,
         profileLoading: false,
         competitorLoading: false,
@@ -108,6 +116,7 @@ function reducer(state, action) {
         wpLoading: false,
         aiLoading: false,
         execLoading: false,
+        specLoading: false,
         isSaving: false,
         profileLoading: false,
         competitorLoading: false,
@@ -350,6 +359,16 @@ function reducer(state, action) {
         guardrails: state.guardrails.filter((_, i) => i !== action.payload) 
       };
 
+    case 'SAVE_SPEC_TO_PLAN':
+      return {
+        ...state,
+        aiExecutionPlan: state.aiExecutionPlan.map(plan => 
+          plan.workPackageId === action.payload.wpId 
+            ? { ...plan, cachedSpecs: { ...plan.cachedSpecs, [action.payload.level]: action.payload.spec } }
+            : plan
+        )
+      };
+
     case 'SET_SELECTED_SPEC':
       return { ...state, selectedSpec: action.payload };
 
@@ -364,6 +383,9 @@ function reducer(state, action) {
           [action.payload.capabilityId]: action.payload.score,
         },
       };
+
+    case 'SET_SELECTED_WP':
+      return { ...state, selectedWorkPackage: action.payload };
 
     default:
       return state;
@@ -633,7 +655,16 @@ export function AppProvider({ children }) {
     updateGuardrail: useCallback((index, text) => dispatch({ type: 'UPDATE_GUARDRAIL', payload: { index, text } }), []),
     deleteGuardrail: useCallback((index) => dispatch({ type: 'DELETE_GUARDRAIL', payload: index }), []),
     
-    generateAISpec: useCallback(async (level, suggestion, wpName, context) => {
+    generateAISpec: useCallback(async (level, suggestion, wpName, context, wpId) => {
+      // Check cache first if we have a wpId
+      if (wpId && state.aiExecutionPlan) {
+        const plan = state.aiExecutionPlan.find(p => p.workPackageId === wpId);
+        if (plan?.cachedSpecs?.[level]) {
+          dispatch({ type: 'SET_SELECTED_SPEC', payload: plan.cachedSpecs[level] });
+          return;
+        }
+      }
+
       dispatch({ type: 'SET_SPEC_LOADING', payload: true });
       try {
         const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
@@ -650,17 +681,46 @@ export function AppProvider({ children }) {
         });
         const data = await res.json();
         if (data.success) {
-          dispatch({ type: 'SET_SELECTED_SPEC', payload: { ...data.spec, level, suggestion, wpName } });
+          const fullSpec = { ...data.spec, level, suggestion, wpName, wpId };
+          
+          if (wpId) {
+            dispatch({ type: 'SAVE_SPEC_TO_PLAN', payload: { wpId, level, spec: fullSpec } });
+          }
+          
+          dispatch({ type: 'SET_SELECTED_SPEC', payload: fullSpec });
         }
       } catch (err) {
         console.error('Spec generation error:', err);
       } finally {
         dispatch({ type: 'SET_SPEC_LOADING', payload: false });
       }
-    }, [state.guardrails]),
+    }, [state.guardrails, state.aiExecutionPlan]),
     
     closeSpecWorkspace: useCallback(() => dispatch({ type: 'SET_SELECTED_SPEC', payload: null }), []),
+    setSelectedWorkPackage: useCallback((wp) => dispatch({ type: 'SET_SELECTED_WP', payload: wp }), []),
+    toggleLeftPanel: useCallback(() => dispatch({ type: 'TOGGLE_LEFT_PANEL' }), []),
   };
+
+  // Session Restoration (Auto-Hydration)
+  useEffect(() => {
+    const hydrate = async () => {
+      const lastId = localStorage.getItem('stratigen_last_project_id');
+      if (lastId && !state.projectId) {
+        try {
+          console.log(`[Hydration] Restoring session: ${lastId}`);
+          const fullProject = await fetchProjectById(lastId);
+          // Persist the selection for session restoration
+          localStorage.setItem('stratigen_last_project_id', lastId);
+          actions.loadProject(fullProject.state);
+          actions.setProjectId(lastId);
+        } catch (err) {
+          console.error('[Hydration] Failed to restore session:', err);
+          localStorage.removeItem('stratigen_last_project_id');
+        }
+      }
+    };
+    hydrate();
+  }, [actions]); // Only run once on mount
 
   return (
     <AppContext.Provider value={{ state, actions, dispatch }}>

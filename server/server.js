@@ -581,7 +581,7 @@ app.post('/api/generate-ai-spec', async (req, res) => {
     Structure your response as a JSON object with:
     - role: Define who the AI is (e.g., "You are an expert recruitment copywriter").
     - task: Clear, action-oriented verbs (e.g., "Summarize candidate CVs against these 5 criteria...").
-    - context: Background information, goals, and constraints. Include any provided Guardrails.
+    - context: Provide 2-3 paragraphs of background information, goals, and constraints. This MUST be a plain string, not an object. Include any provided Guardrails.
     - formatStyle: Define output structure (Table, JSON, Email) and tone (Professional, Empathetic).
     - examples: A few-shot sample showing the desired style/output.
     ${level === 2 ? '- promptChain: Array of steps, each with a specific sub-prompt.' : ''}

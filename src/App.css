@@ -10,6 +10,12 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
+}
+
+.app.collapsed-left .left-panel {
+  width: 64px;
+  min-width: 64px;
 }
 
 /* Spinner animation for loading states */

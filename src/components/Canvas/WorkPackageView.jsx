@@ -1,22 +1,14 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Layers, ChevronDown, ChevronRight, AlertTriangle, CheckCircle, Cpu, Tool } from 'react-feather';
-
-const PRIORITY_COLOR = { High: '#EF4444', Medium: '#F59E0B', Low: '#6B7280' };
+import { Layers, ChevronDown, ChevronRight, Tool, ExternalLink } from 'react-feather';
+import './WorkPackageView.css';
 
 export default function WorkPackageView() {
   const { state, actions } = useApp();
   const { workPackages, fixes } = state;
   const [expandedWS, setExpandedWS] = useState(new Set());
-  const [expandedPkg, setExpandedPkg] = useState(new Set());
 
   const toggleWS = (id) => setExpandedWS(prev => {
-    const n = new Set(prev);
-    n.has(id) ? n.delete(id) : n.add(id);
-    return n;
-  });
-
-  const togglePkg = (id) => setExpandedPkg(prev => {
     const n = new Set(prev);
     n.has(id) ? n.delete(id) : n.add(id);
     return n;
@@ -71,99 +63,38 @@ export default function WorkPackageView() {
                   {highPkgs > 0 && <span className="ws-badge ws-badge-high">{highPkgs} High Priority</span>}
                 </div>
                 <div className="ws-header-right">
-                  <span className="ws-fix-count"><Tool size={11} /> {ws.totalFixes} actions</span>
+                  <span className="ws-fix-count" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b' }}>
+                    <Tool size={11} /> {ws.totalFixes} actions
+                  </span>
                 </div>
               </div>
 
-              {/* Work packages */}
+              {/* Work packages simplified grid */}
               {wsExpanded && (
                 <div className="pkg-list animate-fade-in">
-                  {ws.packages.map(pkg => {
-                    const pkgExpanded = expandedPkg.has(pkg.id);
-                    return (
-                      <div key={pkg.id} className={`pkg-card priority-${pkg.priority.toLowerCase()}`}>
-                        {/* Package header row */}
-                        <div className="pkg-header" onClick={() => togglePkg(pkg.id)}>
-                          <div className="pkg-header-left">
-                            <span className="pkg-chevron">{pkgExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
-                            <span className="pkg-name">{pkg.name}</span>
-                          </div>
-                          <div className="pkg-header-right">
-                            <span className="pkg-priority" style={{ color: PRIORITY_COLOR[pkg.priority] }}>
-                              {pkg.priority}
-                            </span>
-                            <span className="pkg-fix-count">{pkg.fixes.length} capabilities</span>
-                          </div>
-                        </div>
-
-                        {/* Consulting Details */}
-                        {pkgExpanded && (
-                          <div className="pkg-details animate-fade-in" style={{ padding: 'var(--space-md)', borderTop: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.02)' }}>
-                            <div className="pkg-desc" style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-lg)', lineHeight: 1.5 }}>
-                              {pkg.description}
-                            </div>
-                            
-                            <div className="pkg-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                              <div className="pkg-col">
-                                <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Key Activities</h4>
-                                <ul style={{ paddingLeft: '18px', margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-main)', lineHeight: 1.6 }}>
-                                  {pkg.keyActivities?.map((a, i) => <li key={`act-${i}`}>{a}</li>)}
-                                </ul>
-                              </div>
-                              <div className="pkg-col">
-                                <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Key Outputs</h4>
-                                <ul style={{ paddingLeft: '18px', margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-main)', lineHeight: 1.6 }}>
-                                  {pkg.keyOutputs?.map((o, i) => <li key={`out-${i}`}>{o}</li>)}
-                                </ul>
-                              </div>
-                              <div className="pkg-col">
-                                <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Resources Required</h4>
-                                <ul style={{ paddingLeft: '18px', margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-main)', lineHeight: 1.6 }}>
-                                  {pkg.resourcesRequired?.map((r, i) => <li key={`res-${i}`}>{r}</li>)}
-                                </ul>
-                              </div>
-                              <div className="pkg-col">
-                                <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Strategic Benefits</h4>
-                                <ul style={{ paddingLeft: '18px', margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-main)', lineHeight: 1.6 }}>
-                                  {pkg.benefits?.map((b, i) => <li key={`ben-${i}`}>{b}</li>)}
-                                </ul>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Capability + fix rows */}
-                        {pkgExpanded && (
-                          <div className="pkg-fixes animate-fade-in" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                            <div style={{ padding: '8px 12px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', background: 'rgba(0,0,0,0.03)' }}>
-                              Impacted Capabilities
-                            </div>
-                            {pkg.fixes?.map((fix, fi) => (
-                              <div key={fix.capabilityId || fi} className="fix-row">
-                                <div className="fix-row-header">
-                                  <AlertTriangle size={11} className="badge-warning" />
-                                  <span className="fix-cap-name">{fix.capabilityName}</span>
-                                  <span className="fix-pain-count">{(fix.painPoints?.length || 0)} issue{(fix.painPoints?.length || 0) !== 1 ? 's' : ''}</span>
-                                </div>
-                                <div className="fix-dimensions">
-                                  {Object.entries(fix.dimensions || {}).map(([dim, items]) => Array.isArray(items) && items.length > 0 && (
-                                    <div key={dim} className="fix-dim-group">
-                                      <span className="fix-dim-label">{dim.charAt(0).toUpperCase() + dim.slice(1)}</span>
-                                      <ul className="fix-dim-items">
-                                        {items.map((item, ii) => (
-                                          <li key={`${fix.capabilityId}-${dim}-${ii}`}>{item}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                  {ws.packages.map(pkg => (
+                    <div key={pkg.id} className="pkg-card-simple">
+                      <div className="pkg-header-simple">
+                        <span className="pkg-name-small">{pkg.name}</span>
+                        <span className={`priority-badge ${pkg.priority?.toLowerCase()}`}>
+                          {pkg.priority}
+                        </span>
                       </div>
-                    );
-                  })}
+                      <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                        {pkg.description}
+                      </p>
+                      <button 
+                        className="pkg-explore-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          actions.setSelectedWorkPackage(pkg);
+                        }}
+                      >
+                        <ExternalLink size={12} />
+                        Explore Detailed Briefing
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

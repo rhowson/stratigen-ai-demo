@@ -30,6 +30,8 @@ export default function ProjectSwitcher() {
 
     try {
       const fullProject = await fetchProjectById(projectId);
+      // Persist the selection for session restoration
+      localStorage.setItem('stratigen_last_project_id', projectId);
       actions.loadProject(fullProject.state);
       actions.setProjectId(projectId);
     } catch (err) {
