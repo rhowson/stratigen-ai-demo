@@ -1,5 +1,5 @@
 import { useApp } from '../context/AppContext';
-import { Hexagon, Target, AlertCircle, Tool, Layers, Cpu, Shield, ChevronRight } from 'react-feather';
+import { Hexagon, Target, AlertCircle, Tool, Layers, Cpu, Shield, ChevronRight, Plus } from 'react-feather';
 import ProjectSwitcher from './ProjectSwitcher';
 import './TopBar.css';
 
@@ -20,6 +20,14 @@ export default function TopBar() {
         <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'var(--space-md)' }} className="animate-fade-in">
           <ChevronRight size={14} className="topbar-sep" style={{ marginRight: 'var(--space-md)' }} />
           <ProjectSwitcher />
+          <button 
+            className="btn btn-new-project" 
+            onClick={actions.resetProject}
+            title="Start a new strategic session"
+          >
+            <Plus size={12} />
+            <span>New</span>
+          </button>
         </div>
       </div>
 

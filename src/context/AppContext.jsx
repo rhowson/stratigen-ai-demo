@@ -89,6 +89,8 @@ function reducer(state, action) {
   switch (action.type) {
     case 'TOGGLE_LEFT_PANEL':
       return { ...state, leftPanelCollapsed: !state.leftPanelCollapsed };
+    case 'SET_LEFT_PANEL_COLLAPSED':
+      return { ...state, leftPanelCollapsed: action.payload };
 
     case 'LOAD_PROJECT':
       return { 
@@ -108,6 +110,25 @@ function reducer(state, action) {
         execProgress: { current: 0, total: 0, status: '' },
         rightPanelOpen: state.rightPanelOpen, 
         slidePanel: null
+      };
+    case 'RESET_PROJECT':
+      return { 
+        ...initialState,
+        industryName: INDUSTRY_NAME,
+        capabilities: [],
+        maturityScores: {},
+        objectives: [],
+        painPoints: [],
+        impactedCapabilities: {},
+        fixes: [],
+        workPackages: [],
+        aiOpportunities: [],
+        regulations: [],
+        selectedWorkPackageIds: [],
+        aiExecutionPlan: null,
+        isOnboarded: false,
+        company: null,
+        projectId: null
       };
     case 'RESET_LOADING':
       return {
@@ -655,9 +676,9 @@ export function AppProvider({ children }) {
     updateGuardrail: useCallback((index, text) => dispatch({ type: 'UPDATE_GUARDRAIL', payload: { index, text } }), []),
     deleteGuardrail: useCallback((index) => dispatch({ type: 'DELETE_GUARDRAIL', payload: index }), []),
     
-    generateAISpec: useCallback(async (level, suggestion, wpName, context, wpId) => {
-      // Check cache first if we have a wpId
-      if (wpId && state.aiExecutionPlan) {
+    generateAISpec: useCallback(async (level, suggestion, wpName, context, wpId, force = false) => {
+      // Check cache first if we have a wpId and not forcing regeneration
+      if (wpId && state.aiExecutionPlan && !force) {
         const plan = state.aiExecutionPlan.find(p => p.workPackageId === wpId);
         if (plan?.cachedSpecs?.[level]) {
           dispatch({ type: 'SET_SELECTED_SPEC', payload: plan.cachedSpecs[level] });
@@ -699,6 +720,11 @@ export function AppProvider({ children }) {
     closeSpecWorkspace: useCallback(() => dispatch({ type: 'SET_SELECTED_SPEC', payload: null }), []),
     setSelectedWorkPackage: useCallback((wp) => dispatch({ type: 'SET_SELECTED_WP', payload: wp }), []),
     toggleLeftPanel: useCallback(() => dispatch({ type: 'TOGGLE_LEFT_PANEL' }), []),
+    setLeftPanelCollapsed: useCallback((val) => dispatch({ type: 'SET_LEFT_PANEL_COLLAPSED', payload: val }), []),
+    resetProject: useCallback(() => {
+      localStorage.removeItem('stratigen_last_project_id');
+      dispatch({ type: 'RESET_PROJECT' });
+    }, []),
   };
 
   // Session Restoration (Auto-Hydration)

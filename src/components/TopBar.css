@@ -144,3 +144,31 @@
   color: #92400E !important;
   border-color: var(--color-warning) !important;
 }
+
+.btn-new-project {
+  background: var(--accent-green-pale);
+  color: var(--accent-green-dark);
+  border: 1px solid var(--accent-green-light);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 10px;
+  margin-left: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-new-project:hover {
+  background: var(--accent-green-light);
+  border-color: var(--accent-green);
+  transform: translateY(-1px);
+}
+.btn-new-project svg {
+  flex-shrink: 0;
+}

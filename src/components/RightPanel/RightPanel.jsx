@@ -1,5 +1,5 @@
 import { useApp } from '../../context/AppContext';
-import { Sidebar, ChevronRight, Compass } from 'react-feather';
+import { Sidebar, ChevronRight, Hexagon } from 'react-feather';
 import KPIImpact from './KPIImpact';
 import ImpactOverview from './ImpactOverview';
 import RiskIndicators from './RiskIndicators';
@@ -31,7 +31,7 @@ export default function RightPanel() {
     <aside className="right-panel">
       <div className="rp-header">
         <div className="rp-header-title">
-          <Compass size={16} />
+          <Hexagon size={16} />
           <span className="section-title" style={{ margin: 0 }}>Insight Engine</span>
         </div>
         <button className="collapse-btn" onClick={() => actions.toggleRightPanel(false)} title="Close Panel">

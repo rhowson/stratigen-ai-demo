@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Briefcase, Target, Zap, Settings, ChevronLeft } from 'react-feather';
+import { Briefcase, Target, Zap, Settings, ChevronLeft, Hexagon, Check } from 'react-feather';
 import OnboardingForm from './OnboardingForm';
 import StrategyInput from './StrategyInput';
 import PainPointInput from './PainPointInput';
 import ActionTriggers from './ActionTriggers';
 import './LeftPanel.css';
 
-const icons = { onboarding: Briefcase, strategy: Target, painpoints: Zap, actions: Settings };
+const icons = { onboarding: Hexagon, strategy: Target, painpoints: Zap, actions: Settings };
 
 export default function LeftPanel() {
   const { state, actions } = useApp();
@@ -15,10 +15,10 @@ export default function LeftPanel() {
   const collapsed = state.leftPanelCollapsed;
 
   const sections = [
-    { id: 'onboarding', label: 'Company', component: OnboardingForm },
-    { id: 'strategy', label: 'Strategy', component: StrategyInput, requiresOnboard: true },
-    { id: 'painpoints', label: 'Pain Points', component: PainPointInput, requiresOnboard: true },
-    { id: 'actions', label: 'Actions', component: ActionTriggers, requiresOnboard: true },
+    { id: 'onboarding', label: 'Company', component: OnboardingForm, isDone: state.isOnboarded },
+    { id: 'strategy', label: 'Strategy', component: StrategyInput, requiresOnboard: true, isDone: state.objectives.length > 0 },
+    { id: 'painpoints', label: 'Pain Points', component: PainPointInput, requiresOnboard: true, isDone: state.painPoints.length > 0 },
+    { id: 'actions', label: 'Actions', component: ActionTriggers, requiresOnboard: true, isDone: state.workPackages.length > 0 },
   ];
 
   return (
@@ -36,13 +36,21 @@ export default function LeftPanel() {
           return (
             <button
               key={s.id}
-              className={`panel-tab ${activeSection === s.id ? 'active' : ''} ${s.requiresOnboard && !state.isOnboarded ? 'disabled' : ''}`}
-              onClick={() => (!s.requiresOnboard || state.isOnboarded) && setActiveSection(s.id)}
+              className={`panel-tab ${activeSection === s.id ? 'active' : ''} ${s.requiresOnboard && !state.isOnboarded ? 'disabled' : ''} ${s.isDone ? 'is-done' : ''}`}
+              onClick={() => {
+                if (!s.requiresOnboard || state.isOnboarded) {
+                  setActiveSection(s.id);
+                  actions.setLeftPanelCollapsed(false);
+                }
+              }}
               disabled={s.requiresOnboard && !state.isOnboarded}
               title={collapsed ? s.label : ''}
             >
-              <Icon size={14} />
-              {!collapsed && s.label}
+              <div className="tab-icon-wrapper">
+                <Icon size={14} />
+                {s.isDone && <div className="done-indicator"><Check size={8} /></div>}
+              </div>
+              {!collapsed && <span>{s.label}</span>}
               {!collapsed && s.id === 'painpoints' && state.painPoints.length > 0 && (
                 <span className="tab-count">{state.painPoints.length}</span>
               )}

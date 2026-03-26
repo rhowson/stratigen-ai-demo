@@ -590,7 +590,7 @@ app.post('/api/generate-ai-spec', async (req, res) => {
       extraFields: `- tools: Array of tool/integration names the agent requires (e.g., "CRM API", "Calendar", "Email")
 - memoryStrategy: How the agent retains and uses context across sessions
 - escalationRules: Array of specific conditions that must trigger human escalation
-- agentBuildInstructions: Step-by-step guide (3-5 steps) for configuring this agent in Claude Desktop or OpenClaw`,
+- agentBuildInstructions: Step-by-step guide (3-5 steps) for configuring this agent in Claude Desktop or OpenClaw, formatted as a numbered list (1, 2, 3...)`,
     },
   };
 
@@ -599,20 +599,25 @@ app.post('/api/generate-ai-spec', async (req, res) => {
   try {
     const systemPrompt = `You are an elite AI Solutions Architect specialising in practical AI implementation for recruitment businesses. Use UK English throughout (standardise, optimise, organise, programme, labour, centre).
 
-Your task: Generate a Level ${level} AI implementation specification for the work package "${workPackageName}".
+YOUR AUDIENCE: Frontline recruitment staff. They do NOT have administrative access to back-end systems.
+YOUR GOAL: Generate a Level ${level} AI implementation specification for the work package "${workPackageName}".
 
 TARGET PLATFORM: ${cfg.platform}
 PURPOSE: ${cfg.focus}
 
-ALL outputs MUST follow this exact 6-section prompt structure:
-1. Role (Persona) — Who is the AI acting as? Write a specific, credible professional persona relevant to recruitment (e.g., "You are an experienced senior recruiter with 10 years specialising in technology placements...")
-2. Context (Background) — The business situation, pain points being addressed, company context, and why this matters
-3. Task (Goal) — The specific action required. Use clear, action-oriented language with measurable outcomes
-4. Constraints (Limits) — Hard limits, compliance requirements, red lines, and quality gates
-5. Output Format (Style) — Exact structure of the output (table, email, scorecard, workflow config, etc.) and tone
-6. Examples (Few-Shot) — A concrete, realistic sample showing the desired quality and style of output. Must be specific to recruitment, not generic placeholder text.
+ALL outputs MUST follow this exact 6-section prompt structure, written DIRECTLY for the AI Agent (the LLM) that the worker will interact with:
+1. Role (Persona) — Who is the AI acting as? Write a specific, credible professional persona written in the second person (e.g., "You are an experienced senior recruiter...")
+2. Context (Background) — The business situation and why this task matters.
+3. Task (Goal) — Clear, action-oriented instructions for the AI to perform.
+4. Constraints (Implicit Guardrails) — CRITICAL: Do NOT write these as "Developer instructions". Write them as direct behavioral rules for the AI (e.g., "Never expose candidate personal data", "Maintain a neutral, professional tone"). The AI must "self-police" based on these instructions.
+5. Output Format (Style) — Exact structure of the output.
+6. Examples (Few-Shot) — Concrete, realistic samples.
 
-Guardrails to embed in the Constraints section:
+LEVEL-SPECIFIC LOGIC:
+- Level 1 & 2: Assume the user is just using a chat-based LLM. The "Guardrails" must be baked into the persona and instructions.
+- Level 3: Can include more technical build instructions, but the core prompt must still be agent-facing.
+
+Guardrails to embed implicitly:
 ${(guardrails || []).map(g => `- ${g}`).join('\n')}
 
 Work Package: ${workPackageName}
@@ -620,16 +625,17 @@ Strategic Context: ${JSON.stringify(context)}
 Suggestion: ${suggestion}
 
 Return a JSON object with exactly these fields:
-- role: string — the persona section text
-- context: string — the background section text
-- task: string — the goal/action section text
-- constraints: string — limits, red lines, and guardrails (include the guardrails above)
-- outputFormat: string — exact output structure and tone
-- examples: string — a concrete, realistic few-shot example (at least 3-4 sentences of real example content)
-- fullPrompt: string — the COMPLETE formatted prompt combining ALL 6 sections with markdown headers (## Role, ## Context, ## Task, ## Constraints, ## Output Format, ## Examples), ready to copy-paste into ${cfg.platform}
+- role: string (Role description written for the AI)
+- context: string (Background situation)
+- task: string (Core instructions)
+- constraints: string (Direct behavioral rules)
+- outputFormat: string (Exact structure as text, NOT an object)
+- examples: string (Concrete samples)
+- fullPrompt: string — COMPLETE formatted prompt with markdown headers (## Role, ## Context, etc.)
+- tailoredAnalysis: object — { "strategic", "financial", "ethical", "legal" } (1 sentence each, focused on frontline impact/value)
 ${cfg.extraFields}
 
-CRITICAL: The fullPrompt must be genuinely useful and specific — not generic boilerplate. Ground every section in the actual pain points, capabilities, and recruitment domain context provided.`;
+CRITICAL: The tailoredAnalysis must be specific to the implementation Level ${level} and written for a frontline business case. Avoid developer jargon.`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -645,6 +651,85 @@ CRITICAL: The fullPrompt must be genuinely useful and specific — not generic b
   } catch (error) {
     console.error('AI Spec Generation Error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to generate AI spec' });
+  }
+});
+
+
+// ─── AI-Powered Export Blueprint Synthesizer ─────────────────
+app.post('/api/generate-export-blueprint', async (req, res) => {
+  try {
+    const { companyName, companyProfile, aiExecutionPlan, objectives } = req.body;
+
+    console.log(`[AI Export Synthesizer] Rebuilding full blueprint for ${companyName}...`);
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      temperature: 0.5,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a world-class Business Transformation Architect and AI implementation expert.
+Your task is to synthesize a collection of fragmented implementation plans into a single, cohesive, "Boardroom Ready" Strategic Blueprint.
+
+STRICT RULE: Use UK English spelling (optimise, standardise, programme, labour, centre).
+
+INPUT DATA:
+- Company context and objectives.
+- A list of Work Packages, each containing:
+    - Strategic analysis (Process, People, Tech, Data).
+    - AI Specifications (Level 1-3 prompts and workflow steps).
+
+YOUR OUTPUT MUST BE A STRUCTURED JSON OBJECT FOR DOCUMENT GENERATION:
+{
+  "docTitle": "Strategic AI Transformation Blueprint",
+  "executiveSummary": "A high-level synthesis of why this transformation matters and the total business value.",
+  "chapters": [
+    {
+      "title": "Stage title",
+      "summary": "Cohesive summary of this stage's objective.",
+      "sections": [
+        {
+          "heading": "Section Heading",
+          "content": "Rich, professional text content. Use markdown-style lists if needed.",
+          "type": "text" | "table" | "specification",
+          "tableData": { "headers": [], "rows": [[]] }, // Only if type is table
+          "specLevel": 1 | 2 | 3, // Only if type is specification
+          "specContent": {
+             "role": "...",
+             "context": "...",
+             "task": "...",
+             "constraints": "...", // behavioral rules for the AI
+             "fullPrompt": "The complete, raw, formatted prompt"
+          }
+        }
+      ]
+    }
+  ],
+  "conclusion": "Closing strategic statement."
+}
+
+GUIDELINES:
+1. NARRATIVE FLOW: Don't just list items. Connect the dots between capabilities.
+2. RAW PROMPTS: Preserve the full, raw prompt text within 'specContent.fullPrompt' as this is the most valuable technical asset.
+3. PROFESSIONAL TONE: Write for an executive audience (CEO/COO/CIO).
+4. NO MARKDOWN HEADERS IN CONTENT: Use the "heading" field for titles. Use markdown ONLY for bullet points within "content".`
+        },
+        {
+          role: 'user',
+          content: `Rebuild the strategic blueprint for ${companyName}.
+Objectives: ${JSON.stringify(objectives)}
+Profile: ${JSON.stringify(companyProfile)}
+Plan Data: ${JSON.stringify(aiExecutionPlan)}`
+        }
+      ]
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    res.json({ success: true, blueprint: result });
+  } catch (err) {
+    console.error('Export synthesizer error:', err.message);
+    res.status(500).json({ error: 'Failed to synthesize export blueprint', details: err.message });
   }
 });
 

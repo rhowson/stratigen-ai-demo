@@ -19,6 +19,7 @@ export default function ActionTriggers() {
 
   const actionCards = [
     {
+      step: 1,
       icon: Tool,
       title: 'Generate Fixes',
       desc: 'Analyse pain points and generate fixes across Process, People, Technology, and Data.',
@@ -30,6 +31,7 @@ export default function ActionTriggers() {
       warning: 'Regenerating fixes will overwrite your existing fixes. Continue?',
     },
     {
+      step: 2,
       icon: Package,
       title: 'Package Work',
       desc: 'Group fixes into work packages with priority scoring and dependency mapping.',
@@ -41,6 +43,7 @@ export default function ActionTriggers() {
       warning: 'Regenerating work packages will overwrite your existing packages. Continue?',
     },
     {
+      step: 3,
       icon: Cpu,
       title: 'Build AI Execution Plan',
       desc: 'Select work packages to create a deep strategic implementation document including legal and ethical considerations.',
@@ -110,6 +113,7 @@ export default function ActionTriggers() {
               className={`action-card ${!card.enabled ? 'disabled' : ''} ${card.loading ? 'loading' : ''} ${card.done ? 'has-done' : ''}`}
               onClick={() => handleAction(card)}
             >
+              <div className="action-card-step-badge">{card.step}</div>
               <div className="action-card-top">
                 <div className="action-card-icon-wrap">
                   {card.loading ? <Loader size={18} className="spin" /> : <Icon size={18} />}

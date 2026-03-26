@@ -30,16 +30,39 @@ import {
   Edit2,
   Maximize,
   Minimize,
-  X
+  X,
+  Hexagon
 } from 'react-feather';
+import { 
+  Document, 
+  Packer, 
+  Paragraph, 
+  TextRun, 
+  HeadingLevel, 
+  Table, 
+  TableRow, 
+  TableCell, 
+  WidthType, 
+  AlignmentType, 
+  BorderStyle,
+  PageBreak,
+  TableOfContents,
+  ShadingType,
+  VerticalAlign,
+  Header,
+  Footer,
+  ExternalHyperlink
+} from 'docx';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { saveAs } from 'file-saver';
 import './AIExecutionView.css';
 
 export default function AIExecutionView() {
   const { state, actions } = useApp();
   const { aiExecutionPlan, execLoading, execProgress, selectedSpec, specLoading } = state;
   const [activeIndex, setActiveIndex] = useState(0);
+  const [exportLoading, setExportLoading] = useState(false);
   const pdfExportRef = useRef();
 
   if (execLoading) {
@@ -47,7 +70,7 @@ export default function AIExecutionView() {
       <div className="ai-exec-loading">
         <div className="loading-content">
           <div className="loading-icon-wrap">
-            <Zap size={32} className="pulsing-icon" />
+            <Hexagon size={32} className="pulsing-icon" />
           </div>
           <h3>Synthesising AI Execution Plan</h3>
           <p>{execProgress.status}</p>
@@ -73,42 +96,249 @@ export default function AIExecutionView() {
     );
   }
 
-  // Safely determine the active plan to prevent out-of-bounds crashes
   const safeIndex = activeIndex >= aiExecutionPlan.length ? 0 : activeIndex;
   const activePlan = aiExecutionPlan[safeIndex];
 
   if (!activePlan) return null;
 
-  const handleExportPDF = async () => {
-    const input = pdfExportRef.current;
-    if (!input) return;
-
+  const handleExportWord = async () => {
+    setExportLoading(true);
     try {
-      const canvas = await html2canvas(input, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#FFFFFF',
+      // 1. Get the AI-rebuilt blueprint
+      const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+      const res = await fetch(`${API_BASE}/api/generate-export-blueprint`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: state.company?.name,
+          companyProfile: state.companyProfile,
+          aiExecutionPlan,
+          objectives: state.objectives
+        }),
       });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 20;
+      const { success, blueprint } = await res.json();
+      if (!success) throw new Error('Failed to synthesize blueprint');
 
+      const sections = [];
+
+      // Cover Page
+      sections.push({
+        children: [
+          new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 4000 }, children: [
+            new TextRun({ text: "STRATIGEN ", bold: true, color: "0f172a", size: 28 }),
+            new TextRun({ text: "AI", bold: true, color: "10b981", size: 28 })
+          ]}),
+          new Paragraph({ text: blueprint.docTitle, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { before: 400, after: 800 } }),
+          new Paragraph({ text: state.company?.name || "Refining Excellence", heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER, spacing: { after: 2000 } }),
+          new Paragraph({ alignment: AlignmentType.CENTER, children: [
+            new TextRun({ text: `Generated on ${new Date().toLocaleDateString('en-GB')}`, color: "64748b" }),
+            new TextRun({ text: "\nProprietary & Confidential", italics: true, color: "64748b" })
+          ]}),
+          new Paragraph({ children: [new PageBreak()] })
+        ]
+      });
+
+      // Executive Summary
+      sections.push({
+        children: [
+          new Paragraph({ text: "Executive Summary", heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 400 } }),
+          new Paragraph({ text: blueprint.executiveSummary, spacing: { bottom: 800 } }),
+          new Paragraph({ children: [new PageBreak()] })
+        ]
+      });
+
+      // Chapters
+      blueprint.chapters.forEach((chapter) => {
+        const children = [
+          new Paragraph({ text: chapter.title, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 400 } }),
+          new Paragraph({ text: chapter.summary, italics: true, spacing: { bottom: 400 } }),
+        ];
+
+        chapter.sections.forEach(section => {
+          children.push(new Paragraph({ text: section.heading, heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 200 } }));
+          
+          if (section.type === 'specification') {
+            children.push(new Paragraph({ children: [new TextRun({ text: "AI Agent Specification", bold: true, color: "10b981" })] }));
+            children.push(new Paragraph({
+              children: [new TextRun({ text: section.specContent.fullPrompt, size: 18, font: "Courier New", color: "1e293b" })],
+              shading: { fill: "f1f5f9", type: ShadingType.SOLID },
+              border: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "e2e8f0" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "e2e8f0" },
+                left: { style: BorderStyle.SINGLE, size: 1, color: "e2e8f0" },
+                right: { style: BorderStyle.SINGLE, size: 1, color: "e2e8f0" }
+              },
+              spacing: { before: 200, after: 400 }
+            }));
+          } else {
+            children.push(new Paragraph({ text: section.content, spacing: { bottom: 400 } }));
+          }
+        });
+
+        children.push(new Paragraph({ children: [new PageBreak()] }));
+        sections.push({ children });
+      });
+
+      const doc = new Document({
+        styles: { paragraphStyles: [{ id: "Normal", name: "Normal", run: { font: "Calibri", size: 22, color: "334155" } }] },
+        sections
+      });
+
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `Stratigen-Blueprint-${state.company?.name || 'Solution'}.docx`);
+    } catch (err) {
+      console.error('Word Export failed:', err);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setExportLoading(true);
+    try {
+      const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+      const res = await fetch(`${API_BASE}/api/generate-export-blueprint`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: state.company?.name,
+          companyProfile: state.companyProfile,
+          aiExecutionPlan,
+          objectives: state.objectives
+        }),
+      });
+      const { success, blueprint } = await res.json();
+      if (!success) throw new Error('Failed to synthesize blueprint');
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      const contentWidth = pageWidth - (margin * 2);
+      let cursorY = 40;
+
+      const addPageIfNeeded = (heightNeeded) => {
+        if (cursorY + heightNeeded > pageHeight - margin) {
+          pdf.addPage();
+          cursorY = margin;
+          return true;
+        }
+        return false;
+      };
+
+      // 1. Cover Page
+      pdf.setFillColor(15, 23, 42); // #0f172a
+      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(10);
-      pdf.setTextColor(150);
-      pdf.text(`Stratigen AI — Strategic Implementation Document: ${activePlan.workPackageName}`, 20, 10);
-      
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-      pdf.save(`AI-Execution-Plan-${activePlan.workPackageName.replace(/\s+/g, '-')}.pdf`);
+      pdf.text("STRATIGEN AI", pageWidth / 2, 80, { align: 'center' });
+      pdf.setFontSize(28);
+      pdf.text(blueprint.docTitle, pageWidth / 2, 100, { align: 'center', maxWidth: contentWidth });
+      pdf.setFontSize(18);
+      pdf.text(state.company?.name || "Refining Excellence", pageWidth / 2, 130, { align: 'center' });
+      pdf.setFontSize(10);
+      pdf.setTextColor(148, 163, 184); // #94a3b8
+      pdf.text(`Generated on ${new Date().toLocaleDateString('en-GB')}`, pageWidth / 2, 250, { align: 'center' });
+      pdf.text("Proprietary & Confidential", pageWidth / 2, 260, { align: 'center' });
+
+      // 2. Content Pages
+      pdf.addPage();
+      pdf.setFillColor(255, 255, 255); // Reset fill color to white for content pages
+      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      pdf.setTextColor(15, 23, 42);
+      cursorY = margin;
+
+      // Executive Summary
+      pdf.setFontSize(18);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text("Executive Summary", margin, cursorY);
+      cursorY += 10;
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+      const summaryLines = pdf.splitTextToSize(blueprint.executiveSummary, contentWidth);
+      pdf.text(summaryLines, margin, cursorY);
+      cursorY += (summaryLines.length * 5) + 15;
+
+      // Chapters
+      blueprint.chapters.forEach(chapter => {
+        addPageIfNeeded(20);
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(chapter.title, margin, cursorY);
+        cursorY += 8;
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'italic');
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(chapter.summary, margin, cursorY);
+        cursorY += 12;
+        pdf.setTextColor(15, 23, 42);
+
+        chapter.sections.forEach(section => {
+          addPageIfNeeded(15);
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(section.heading, margin, cursorY);
+          cursorY += 8;
+
+          if (section.type === 'specification') {
+            pdf.setFontSize(10);
+            pdf.setFont('courier', 'normal');
+            pdf.setFillColor(241, 245, 249); // #f1f5f9
+            
+            const promptLines = pdf.splitTextToSize(section.specContent.fullPrompt, contentWidth - 10);
+            const promptHeight = (promptLines.length * 4) + 10;
+            
+            // Handle cross-page prompt blocks
+            let lineIdx = 0;
+            while (lineIdx < promptLines.length) {
+              const linesLeft = promptLines.length - lineIdx;
+              const spaceLeft = (pageHeight - margin - cursorY) / 4;
+              const linesToPrint = Math.max(1, Math.min(linesLeft, Math.floor(spaceLeft - 2)));
+              
+              const blockHeight = (linesToPrint * 4) + 6;
+              pdf.rect(margin - 2, cursorY - 4, contentWidth + 4, blockHeight, 'F');
+              pdf.text(promptLines.slice(lineIdx, lineIdx + linesToPrint), margin + 1, cursorY);
+              
+              lineIdx += linesToPrint;
+              cursorY += blockHeight + 2;
+              
+              if (lineIdx < promptLines.length) {
+                pdf.addPage();
+                cursorY = margin + 10;
+              }
+            }
+            cursorY += 10;
+          } else {
+            pdf.setFontSize(11);
+            pdf.setFont('helvetica', 'normal');
+            const lines = pdf.splitTextToSize(section.content, contentWidth);
+            
+            // Handle cross-page text
+            let lineIdx = 0;
+            while (lineIdx < lines.length) {
+              const linesLeft = lines.length - lineIdx;
+              const spaceLeft = (pageHeight - margin - cursorY) / 5;
+              const linesToPrint = Math.max(1, Math.min(linesLeft, Math.floor(spaceLeft)));
+              
+              pdf.text(lines.slice(lineIdx, lineIdx + linesToPrint), margin, cursorY);
+              lineIdx += linesToPrint;
+              cursorY += (linesToPrint * 5);
+              
+              if (lineIdx < lines.length) {
+                pdf.addPage();
+                cursorY = margin;
+              }
+            }
+            cursorY += 10;
+          }
+        });
+      });
+
+      pdf.save(`Stratigen-Blueprint-${state.company?.name || 'Solution'}.pdf`);
     } catch (err) {
       console.error('PDF Export failed:', err);
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -146,10 +376,24 @@ export default function AIExecutionView() {
               {activePlan.strategicContext}
             </p>
           </div>
-          <button className="export-btn" onClick={handleExportPDF}>
-            <Download size={15} />
-            Export to PDF
-          </button>
+            <div className="header-actions">
+              <button 
+                className={`action-btn secondary ${exportLoading ? 'loading' : ''}`}
+                onClick={handleExportWord}
+                disabled={exportLoading}
+              >
+                {exportLoading ? <Zap className="animate-pulse" size={14} /> : <FileText size={14} />}
+                {exportLoading ? 'Refining...' : 'Export Word'}
+              </button>
+              <button 
+                className={`action-btn primary ${exportLoading ? 'loading' : ''}`}
+                onClick={handleExportPDF}
+                disabled={exportLoading}
+              >
+                {exportLoading ? <Zap className="animate-pulse" size={14} /> : <Download size={14} />}
+                {exportLoading ? 'Blueprint...' : 'Export PDF'}
+              </button>
+            </div>
         </div>
 
         <div className="main-scroll-area" ref={pdfExportRef}>
@@ -157,7 +401,7 @@ export default function AIExecutionView() {
           {activePlan.implementationRoadmap && (
             <div className="implementation-roadmap animate-fade-in">
               <div className="roadmap-header">
-                <Activity size={20} />
+                <Hexagon size={20} />
                 <h2>AI Implementation Blueprint</h2>
               </div>
 
@@ -166,7 +410,7 @@ export default function AIExecutionView() {
                 <div className="roadmap-card level-1">
                   <div className="level-badge">Level 1</div>
                   <div className="card-top">
-                    <Terminal size={18} />
+                    <Hexagon size={18} />
                     <h3>Copilot / ChatGPT Prompt</h3>
                   </div>
                   <div className="card-description">
@@ -175,7 +419,7 @@ export default function AIExecutionView() {
                   <div className="card-actions">
                     <button
                       className="explore-btn"
-                      onClick={() => actions.generateAISpec(1, activePlan.implementationRoadmap.level1.prompt || activePlan.implementationRoadmap.level1.title, activePlan.workPackageName, activePlan.strategicContext)}
+                      onClick={() => actions.generateAISpec(1, activePlan.implementationRoadmap.level1.prompt || activePlan.implementationRoadmap.level1.title, activePlan.workPackageName, activePlan.strategicContext, activePlan.workPackageId)}
                     >
                       Generate Prompt
                       <ArrowRight size={14} />
@@ -187,7 +431,7 @@ export default function AIExecutionView() {
                 <div className="roadmap-card level-2">
                   <div className="level-badge">Level 2</div>
                   <div className="card-top">
-                    <List size={18} />
+                    <Hexagon size={18} />
                     <h3>Copilot Studio Workflow Agent</h3>
                   </div>
                   <div className="card-description">
@@ -208,7 +452,7 @@ export default function AIExecutionView() {
                 <div className="roadmap-card level-3">
                   <div className="level-badge">Level 3</div>
                   <div className="card-top">
-                    <Cpu size={18} />
+                    <Hexagon size={18} />
                     <h3>Autonomous Agent Builder</h3>
                   </div>
                   <div className="card-description">
@@ -217,7 +461,7 @@ export default function AIExecutionView() {
                   <div className="card-actions">
                     <button
                       className="explore-btn"
-                      onClick={() => actions.generateAISpec(3, activePlan.implementationRoadmap.level3.agentRole || activePlan.implementationRoadmap.level3.title, activePlan.workPackageName, activePlan.strategicContext)}
+                      onClick={() => actions.generateAISpec(3, activePlan.implementationRoadmap.level3.agentRole || activePlan.implementationRoadmap.level3.title, activePlan.workPackageName, activePlan.strategicContext, activePlan.workPackageId)}
                     >
                       Generate Agent Spec
                       <ArrowRight size={14} />
@@ -227,68 +471,29 @@ export default function AIExecutionView() {
               </div>
             </div>
           )}
-
-          {/* 4-Dimensional Analysis Grid */}
-          <div className="analysis-grid">
-            <DimensionCard 
-              title="Strategic" 
-              icon={<Target size={18} />} 
-              iconColor="#3ECF8E"
-              data={activePlan.analysis.strategic} 
-            />
-            <DimensionCard 
-              title="Legal" 
-              icon={<Shield size={18} />} 
-              iconColor="#3B82F6"
-              data={activePlan.analysis.legal} 
-            />
-            <DimensionCard 
-              title="Ethical" 
-              icon={<Shield size={18} />} 
-              iconColor="#64748b"
-              data={activePlan.analysis.ethical} 
-            />
-            <DimensionCard 
-              title="Financial" 
-              icon={<DollarSign size={18} />} 
-              iconColor="#64748b"
-              data={activePlan.analysis.financial} 
-            />
-          </div>
-
-          {/* Execution Outlines */}
-          <div className="execution-outlines">
-            <OutlineSection 
-              title="Strategic Decisions" 
-              icon={<CheckSquare size={18} />} 
-              items={activePlan.executionOutline.decisions} 
-            />
-            <OutlineSection 
-              title="Technical Artefacts" 
-              icon={<FileText size={18} />} 
-              items={activePlan.executionOutline.artefacts} 
-            />
-            <OutlineSection 
-              title="Enabling Technologies" 
-              icon={<Server size={18} />} 
-              items={activePlan.executionOutline.technologies} 
-            />
-            <OutlineSection 
-              title="Data & Lineage" 
-              icon={<Database size={18} />} 
-              items={activePlan.executionOutline.dataRequirements} 
-            />
-          </div>
         </div>
       </div>
 
       {/* AI Spec Workspace Overlay */}
-      {selectedSpec && <AISpecWorkspace spec={selectedSpec} onClose={actions.closeSpecWorkspace} />}
+      {selectedSpec && <AISpecWorkspace spec={selectedSpec} onClose={actions.closeSpecWorkspace} actions={actions} />}
       {specLoading && (
         <div className="spec-loading-overlay">
           <div className="loading-content">
             <Cpu size={24} className="spin" />
             <p>Architecting Detailed AI Specification...</p>
+          </div>
+        </div>
+      )}
+
+      {exportLoading && (
+        <div className="export-overlay">
+          <div className="export-status-card">
+            <Hexagon className="animate-spin-slow" size={32} color="#10b981" />
+            <h2>Synthesizing Strategic Blueprint</h2>
+            <p>Our AI is rebuilding your plan into a professional boardroom-ready document.</p>
+            <div className="export-progress-bar">
+              <div className="progress-fill animate-shimmer"></div>
+            </div>
           </div>
         </div>
       )}
@@ -308,7 +513,7 @@ const LEVEL_TITLE = {
   3: 'Autonomous Agent Builder Spec',
 };
 
-function AISpecWorkspace({ spec, onClose }) {
+function AISpecWorkspace({ spec, onClose, actions }) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -338,6 +543,95 @@ function AISpecWorkspace({ spec, onClose }) {
     a.click();
   };
 
+  const handleExportWordSpec = async () => {
+    try {
+      const doc = new Document({
+        styles: {
+          paragraphStyles: [
+            {
+              id: "Normal",
+              name: "Normal",
+              run: { font: "Calibri", size: 22, color: "334155" }
+            }
+          ]
+        },
+        sections: [{
+          children: [
+            new Paragraph({ 
+              children: [
+                new TextRun({ text: "STRATIGEN ", bold: true, color: "0f172a", size: 24 }),
+                new TextRun({ text: "AI", bold: true, color: "10b981", size: 24 })
+              ],
+              spacing: { after: 400 }
+            }),
+            new Paragraph({ text: `${LEVEL_TITLE[spec.level]} Specification`, heading: HeadingLevel.HEADING_1 }),
+            new Paragraph({ text: spec.wpName, heading: HeadingLevel.HEADING_2, spacing: { after: 200 } }),
+            new Paragraph({ text: `Target Platform: ${LEVEL_PLATFORM[spec.level]}`, spacing: { after: 600 } }),
+            
+            new Paragraph({ text: "Strategic Value & Decision Logic", heading: HeadingLevel.HEADING_2, spacing: { after: 200 } }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({ 
+                      children: [new Paragraph({ text: "Dimension", bold: true, color: "FFFFFF" })], 
+                      shading: { fill: "0f172a", type: ShadingType.SOLID }
+                    }),
+                    new TableCell({ 
+                      children: [new Paragraph({ text: "Executive Analysis", bold: true, color: "FFFFFF" })], 
+                      shading: { fill: "0f172a", type: ShadingType.SOLID }
+                    }),
+                  ]
+                }),
+                ...['strategic', 'financial', 'ethical', 'legal'].map(dim => (
+                  new TableRow({
+                    children: [
+                      new TableCell({ 
+                        children: [new Paragraph({ text: dim.charAt(0).toUpperCase() + dim.slice(1), bold: true })],
+                        shading: { fill: "f8fafc", type: ShadingType.SOLID }
+                      }),
+                      new TableCell({ children: [new Paragraph(spec.tailoredAnalysis?.[dim] || "Strategic alignment verified.")] }),
+                    ]
+                  })
+                ))
+              ]
+            }),
+
+            new Paragraph({ text: "Strategic AI Specification (Prompt)", heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 200 } }),
+            new Paragraph({
+              children: [new TextRun({ text: fullPrompt, size: 18, font: "Courier New", color: "1e293b" })],
+              shading: { fill: "f1f5f9", type: ShadingType.SOLID },
+              border: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "e2e8f0" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "e2e8f0" },
+                left: { style: BorderStyle.SINGLE, size: 1, color: "e2e8f0" },
+                right: { style: BorderStyle.SINGLE, size: 1, color: "e2e8f0" }
+              }
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 1000 },
+              children: [
+                new TextRun({ text: "Generated by Stratigen AI Engine — Confidential Document", size: 16, italics: true, color: "64748b" })
+              ]
+            })
+          ]
+        }]
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AI-Prompt-L${spec.level}-${spec.wpName.replace(/\s+/g, '-')}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Spec Word Export failed:', err);
+    }
+  };
+
   return createPortal(
     <div className={`spec-workspace-overlay ${isFullScreen ? 'full-screen' : ''}`}>
       <div className="spec-workspace-content animate-slide-up">
@@ -350,6 +644,14 @@ function AISpecWorkspace({ spec, onClose }) {
             </div>
           </div>
           <div className="header-actions">
+            <button 
+              className="regen-btn" 
+              onClick={() => actions.generateAISpec(spec.level, spec.suggestion, spec.wpName, spec.context, spec.wpId, true)}
+              title="Regenerate this specification with a fresh AI analysis"
+            >
+              <Hexagon size={15} />
+              Regenerate
+            </button>
             {!isFullScreen && (
               <button className="fs-btn" onClick={() => setIsFullScreen(true)}>
                 <Maximize size={16} />
@@ -363,101 +665,150 @@ function AISpecWorkspace({ spec, onClose }) {
         </div>
 
         <div className="workspace-scroll-area">
-          {/* Prompt Structure Sections */}
-          <div className="spec-grid">
-            <div className="spec-section">
-              <label><UserCheck size={12} /> Role (Persona)</label>
-              <p>{spec.role}</p>
-            </div>
-            <div className="spec-section">
-              <label><Info size={12} /> Context (Background)</label>
-              <p>{spec.context}</p>
-            </div>
-            <div className="spec-section">
-              <label><Target size={12} /> Task (Goal)</label>
-              <p>{spec.task}</p>
-            </div>
-            <div className="spec-section">
-              <label><Lock size={12} /> Constraints (Limits)</label>
-              <p>{spec.constraints || spec.context}</p>
-            </div>
-            <div className="spec-section">
-              <label><FileText size={12} /> Output Format (Style)</label>
-              <p>{spec.outputFormat || spec.formatStyle}</p>
-            </div>
-            <div className="spec-section large">
-              <label><Zap size={12} /> Examples (Few-Shot)</label>
-              <div className="example-box">{spec.examples}</div>
-            </div>
-          </div>
+          <div className="strategic-doc-container animate-fade-in">
+            <div className="strategic-doc-paper" id="strategic-doc-paper-capture">
+              {/* Document Header */}
+              <div className="doc-section doc-header-info">
+                <div className="doc-label">Strategic implementation Document</div>
+                <h1>{LEVEL_TITLE[spec.level]}</h1>
+                <p className="doc-wp-name">{spec.wpName}</p>
+              </div>
 
-          {/* Level 2: Workflow Steps */}
-          {spec.level === 2 && spec.workflowSteps && spec.workflowSteps.length > 0 && (
-            <div className="extra-section">
-              <h3><List size={14} /> Workflow Steps — Save as Agent in {LEVEL_PLATFORM[2]}</h3>
-              <div className="chain-list">
-                {spec.workflowSteps.map((step, i) => (
-                  <div key={i} className="chain-step">
-                    <div className="step-tag">Step {step.stepNumber || i + 1}: {step.stepName}</div>
-                    <pre>{step.stepPrompt}</pre>
-                    {step.humanCheckpoint && (
-                      <div className="hitl-badge">
-                        <UserCheck size={11} /> Human checkpoint: {step.humanCheckpoint}
+              {/* Context & Objective */}
+              <div className="doc-section doc-context">
+                <h3><Hexagon size={16} /> Objective & Problem Resolution</h3>
+                <p>{spec.context}</p>
+              </div>
+
+              {/* Tailored Strategic Analysis (Level-Specific) */}
+              {spec.tailoredAnalysis && (
+                <div className="doc-section doc-tailored-analysis">
+                  <h3><Shield size={16} /> Strategic Compliance & Value Logic</h3>
+                  <div className="analysis-card-row">
+                    <div className="analysis-mini-card">
+                      <div className="mini-card-header"><Target size={14} /> Strategic</div>
+                      <p>{spec.tailoredAnalysis.strategic}</p>
+                    </div>
+                    <div className="analysis-mini-card">
+                      <div className="mini-card-header"><DollarSign size={14} /> Financial</div>
+                      <p>{spec.tailoredAnalysis.financial}</p>
+                    </div>
+                    <div className="analysis-mini-card">
+                      <div className="mini-card-header"><Hexagon size={14} /> Ethical</div>
+                      <p>{spec.tailoredAnalysis.ethical}</p>
+                    </div>
+                    <div className="analysis-mini-card">
+                      <div className="mini-card-header"><Shield size={14} /> Legal</div>
+                      <p>{spec.tailoredAnalysis.legal}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* The Core Specification */}
+              <div className="doc-section doc-content-main">
+                <div className="doc-content-header">
+                  <h3><Hexagon size={16} /> Strategic AI Guardrails & Prompt</h3>
+                  <div className="doc-actions-inline">
+                    <button className="copy-doc-btn" onClick={handleCopyPrompt}>
+                      {copied ? <CheckSquare size={14} /> : <Clipboard size={14} />}
+                      {copied ? 'Copied' : 'Copy Prompt'}
+                    </button>
+                    <button className="export-doc-btn docx" onClick={handleExportWordSpec}>
+                      <FileText size={14} />
+                      .DOCX
+                    </button>
+                    <button className="export-doc-btn" onClick={handleExportMD}>
+                      <Download size={14} />
+                      .MD
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="prompt-display">
+                  <div className="prompt-segment">
+                    <label>Role & Identity</label>
+                    <p>{typeof spec.role === 'object' ? JSON.stringify(spec.role, null, 2) : spec.role}</p>
+                  </div>
+                  <div className="prompt-segment">
+                    <label>Primary Task & Goal</label>
+                    <p>{typeof spec.task === 'object' ? JSON.stringify(spec.task, null, 2) : spec.task}</p>
+                  </div>
+                  <div className="prompt-segment">
+                    <label>Guardrails & Constraints</label>
+                    <p>{typeof (spec.constraints || spec.context) === 'object' 
+                      ? JSON.stringify(spec.constraints || spec.context, null, 2) 
+                      : (spec.constraints || spec.context)}</p>
+                  </div>
+                  <div className="prompt-segment">
+                    <label>Structural Output Format</label>
+                    <p>{typeof (spec.outputFormat || spec.formatStyle) === 'object'
+                      ? JSON.stringify(spec.outputFormat || spec.formatStyle, null, 2)
+                      : (spec.outputFormat || spec.formatStyle)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Level 2: Workflow Steps */}
+              {spec.level === 2 && spec.workflowSteps && spec.workflowSteps.length > 0 && (
+                <div className="doc-section doc-extra">
+                  <h3><Hexagon size={16} /> Multi-Step Process Logic</h3>
+                  <div className="doc-chain-list">
+                    {spec.workflowSteps.map((step, i) => (
+                      <div key={i} className="doc-chain-step">
+                        <div className="step-count">Step {step.stepNumber || i + 1}</div>
+                        <div className="step-name">{step.stepName}</div>
+                        <p>{step.stepPrompt}</p>
+                        {step.humanCheckpoint && (
+                          <div className="doc-hitl">
+                            <strong>Human Checkpoint:</strong> {step.humanCheckpoint}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+              )}
 
-          {/* Level 3: Agent Build Instructions */}
-          {spec.level === 3 && (
-            <div className="extra-section">
-              <h3><Cpu size={14} /> Agent Build Instructions — {LEVEL_PLATFORM[3]}</h3>
-              <div className="agent-config-card">
-                {spec.tools && spec.tools.length > 0 && (
-                  <div className="config-item">
-                    <label>Required Tools &amp; Integrations</label>
-                    <ul>{spec.tools.map((t, i) => <li key={i}>{t}</li>)}</ul>
+              {/* Level 3: Agent Build Instructions */}
+              {spec.level === 3 && (
+                <div className="doc-section doc-extra">
+                  <h3><Hexagon size={16} /> Agent Configuration Logic</h3>
+                  <div className="agent-config-grid">
+                    <div className="config-box">
+                      <label>Required Integrations</label>
+                      <ul>{spec.tools?.map((t, i) => <li key={i}>{t}</li>)}</ul>
+                    </div>
+                    <div className="config-box">
+                      <label>Knowledge Retention</label>
+                      <p>{spec.memoryStrategy}</p>
+                    </div>
                   </div>
-                )}
-                {spec.memoryStrategy && (
-                  <div className="config-item">
-                    <label>Memory Strategy</label>
-                    <p>{spec.memoryStrategy}</p>
+                  <div className="agent-build-guide">
+                    <label>Step-by-Step Deployment</label>
+                    <pre>{spec.agentBuildInstructions}</pre>
                   </div>
-                )}
-                {spec.escalationRules && spec.escalationRules.length > 0 && (
-                  <div className="config-item">
-                    <label>Escalation Rules (Human-in-the-Loop Triggers)</label>
-                    <ul>{spec.escalationRules.map((r, i) => <li key={i}>{r}</li>)}</ul>
-                  </div>
-                )}
-                {spec.agentBuildInstructions && (
-                  <div className="config-item">
-                    <label>Step-by-Step Build Guide</label>
-                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>{spec.agentBuildInstructions}</pre>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                </div>
+              )}
 
-          {/* Full Prompt Copy Box */}
-          <div className="full-prompt-section">
-            <div className="full-prompt-header">
-              <h3><Clipboard size={14} /> Complete Prompt — ready to paste into {LEVEL_PLATFORM[spec.level]}</h3>
-              <div className="prompt-actions">
-                <button className="copy-prompt-btn" onClick={handleCopyPrompt}>
-                  {copied ? <><CheckSquare size={14} /> Copied!</> : <><Clipboard size={14} /> Copy Full Prompt</>}
-                </button>
-                <button className="export-md-btn" onClick={handleExportMD}>
-                  <Download size={14} /> Export .md
-                </button>
+              {/* Examples Section */}
+              {spec.examples && (
+                <div className="doc-section doc-examples">
+                  <h3><Hexagon size={16} /> Strategic Examples</h3>
+                  <div className="prompt-segment">
+                    <p>{typeof spec.examples === 'object' ? JSON.stringify(spec.examples, null, 2) : spec.examples}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Raw Prompt Section */}
+              <div className="doc-section doc-raw-prompt">
+                <div className="doc-content-header">
+                  <h3><Hexagon size={16} /> Complete Prompt (Raw)</h3>
+                </div>
+                <pre className="doc-raw-box">{fullPrompt}</pre>
               </div>
             </div>
-            <pre className="full-prompt-box">{fullPrompt}</pre>
           </div>
         </div>
       </div>
