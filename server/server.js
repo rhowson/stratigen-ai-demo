@@ -196,6 +196,26 @@ Format:
   }
 });
 
+// ─── Industry Model Endpoints ─────────────────────────────────
+
+// GET all industry models
+app.get('/api/industry-models', async (req, res) => {
+  try {
+    const db = await getDb();
+    const rows = await db.all('SELECT id, name, description, capabilities_json FROM industry_models ORDER BY name ASC');
+    const models = rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      capabilities: JSON.parse(r.capabilities_json),
+    }));
+    res.json({ success: true, models });
+  } catch (err) {
+    console.error('Industry models fetch error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ─── Project Database Endpoints ──────────────────────────────
 
 // GET all projects (summarised)

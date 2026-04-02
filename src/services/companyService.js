@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+const API_BASE = '';
 
 /**
  * Scrape company website and extract profile via OpenAI

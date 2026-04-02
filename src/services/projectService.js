@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+const API_BASE = '';
 
 /**
  * Fetch all available projects (summarised)

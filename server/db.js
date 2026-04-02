@@ -2,6 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { INDUSTRY_MODELS } from './industryData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,8 +29,29 @@ export async function getDb() {
       state_json TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
+    );
+    CREATE TABLE IF NOT EXISTS industry_models (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      capabilities_json TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+
+  // Seed industry models if not present
+  for (const model of INDUSTRY_MODELS) {
+    const existing = await db.get('SELECT id FROM industry_models WHERE id = ?', model.id);
+    if (!existing) {
+      await db.run(
+        'INSERT INTO industry_models (id, name, description, capabilities_json) VALUES (?, ?, ?, ?)',
+        model.id,
+        model.name,
+        model.description,
+        JSON.stringify(model.capabilities)
+      );
+    }
+  }
 
   return db;
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { getIndustryData } from '../../data/industryModels';
 import { Zap, ArrowRight, Plus, Loader } from 'react-feather';
 import { fetchPainPointMapping } from '../../services/companyService';
 
@@ -41,14 +42,7 @@ export default function PainPointInput() {
     handleMapAction(text);
   };
 
-  const examplePainPoints = [
-    'CV screening is too slow and manual',
-    'Poor candidate experience during interviews',
-    'Timesheets often contain errors',
-    'Client onboarding takes too long',
-    'No visibility into pipeline data',
-    'IR35 compliance checks are inconsistent',
-  ];
+  const { painPointExamples } = getIndustryData(state.industryId);
 
   return (
     <div className="input-section">
@@ -81,9 +75,9 @@ export default function PainPointInput() {
       </form>
 
       <div style={{ marginTop: 'var(--space-lg)' }}>
-        <div className="form-label">Quick Examples</div>
+        <div className="form-label">Quick Examples for {state.industryName}</div>
         <div className="suggestion-chips">
-          {examplePainPoints.map((ex, i) => (
+          {painPointExamples.map((ex, i) => (
             <span key={i} className="chip suggestion-chip" onClick={() => handleMapAction(ex)} style={{ pointerEvents: isMapping ? 'none' : 'auto', opacity: isMapping ? 0.5 : 1 }}>
               <Plus size={10} /> {ex.length > 35 ? ex.slice(0, 35) + '…' : ex}
             </span>

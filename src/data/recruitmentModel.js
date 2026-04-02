@@ -484,6 +484,16 @@ export const suggestedObjectives = [
   { name: 'Boost Offer Acceptance Rate', type: 'KPI', kpiId: 'offer-acceptance-rate' },
 ];
 
+// ─── Pain Point Examples ────────────────────────────────────────
+export const painPointExamples = [
+  'CV screening is too slow and manual',
+  'Poor candidate experience during interviews',
+  'Timesheets often contain errors',
+  'Client onboarding takes too long',
+  'No visibility into pipeline data',
+  'IR35 compliance checks are inconsistent',
+];
+
 // ─── Pain Point Keywords → Capability Mapping ──────────────────
 export const painPointKeywords = {
   'cv': ['cv-screening'],

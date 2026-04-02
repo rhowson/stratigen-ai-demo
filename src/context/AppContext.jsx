@@ -28,6 +28,7 @@ const initialState = {
   competitorError: null,
 
   // Industry model
+  industryId: 'recruitment-services',
   industryName: INDUSTRY_NAME,
   capabilities: [],
 
@@ -112,7 +113,7 @@ function reducer(state, action) {
         slidePanel: null
       };
     case 'RESET_PROJECT':
-      return { 
+      return {
         ...initialState,
         industryName: INDUSTRY_NAME,
         capabilities: [],
@@ -130,6 +131,46 @@ function reducer(state, action) {
         company: null,
         projectId: null
       };
+
+    case 'RESET_PROJECT_DATA': {
+      // Re-initialise maturity scores to 0 for all loaded capabilities
+      const resetMaturity = {};
+      state.capabilities.forEach(l0 => {
+        l0.l1.forEach(l1 => {
+          l1.l2.forEach(l2 => { resetMaturity[l2.id] = 0; });
+        });
+      });
+      return {
+        ...state,
+        objectives: [],
+        painPoints: [],
+        impactedCapabilities: {},
+        maturityScores: resetMaturity,
+        fixes: [],
+        fixesLoading: false,
+        fixProgress: { current: 0, total: 0, status: '' },
+        workPackages: [],
+        wpLoading: false,
+        wpProgress: { current: 0, total: 0, status: '' },
+        aiOpportunities: [],
+        aiLoading: false,
+        showAILayer: false,
+        regulations: [],
+        showRegulatoryLayer: false,
+        selectedWorkPackageIds: [],
+        aiExecutionPlan: null,
+        execLoading: false,
+        execProgress: { current: 0, total: 0, status: '' },
+        selectedSpec: null,
+        slidePanel: null,
+        companyProfile: null,
+        profileLoading: false,
+        profileError: null,
+        competitors: null,
+        competitorLoading: false,
+        competitorError: null,
+      };
+    }
     case 'RESET_LOADING':
       return {
         ...state,
@@ -152,8 +193,13 @@ function reducer(state, action) {
     case 'TOGGLE_RIGHT_PANEL':
       return { ...state, rightPanelOpen: action.payload !== undefined ? action.payload : !state.rightPanelOpen };
     case 'SET_COMPANY': {
+      // Support both legacy call (payload = company) and new call (payload = { company, model })
+      const company = action.payload?.company ?? action.payload;
+      const modelCaps = action.payload?.model?.capabilities ?? capabilityModel;
+      const industryName = action.payload?.model?.name ?? INDUSTRY_NAME;
+
       // Clone capability model with neutral maturity (0 = unscored)
-      const caps = JSON.parse(JSON.stringify(capabilityModel));
+      const caps = JSON.parse(JSON.stringify(modelCaps));
       const maturityScores = {};
       caps.forEach(l0 => {
         l0.l1.forEach(l1 => {
@@ -165,7 +211,9 @@ function reducer(state, action) {
 
       return {
         ...state,
-        company: action.payload,
+        company,
+        industryId: action.payload?.model?.id ?? 'recruitment-services',
+        industryName,
         isOnboarded: true,
         capabilities: caps,
         maturityScores,
@@ -420,7 +468,7 @@ export function AppProvider({ children }) {
     loadProject: useCallback((data) => dispatch({ type: 'LOAD_PROJECT', payload: data }), []),
     setProjectId: useCallback((id) => dispatch({ type: 'SET_PROJECT_ID', payload: id }), []),
     setIsSaving: useCallback((val) => dispatch({ type: 'SET_IS_SAVING', payload: val }), []),
-    setCompany: useCallback((data) => dispatch({ type: 'SET_COMPANY', payload: data }), []),
+    setCompany: useCallback((data, model) => dispatch({ type: 'SET_COMPANY', payload: model ? { company: data, model } : data }), []),
     addObjective: useCallback((obj) => dispatch({ type: 'ADD_OBJECTIVE', payload: obj }), []),
     removeObjective: useCallback((id) => dispatch({ type: 'REMOVE_OBJECTIVE', payload: id }), []),
     addPainPoint: useCallback((text, mappedIds = []) => {
@@ -458,7 +506,7 @@ export function AppProvider({ children }) {
 
         dispatch({ type: 'SET_FIX_PROGRESS', payload: { current: 0, total: queue.length, status: 'Starting sequential analysis...' } });
 
-        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        const API_BASE = '';
 
         let count = 0;
         for (const cap of queue) {
@@ -519,7 +567,7 @@ export function AppProvider({ children }) {
         const queue = Object.values(l1Groups);
         dispatch({ type: 'SET_WP_PROGRESS', payload: { current: 0, total: queue.length, status: 'Starting packaging...' } });
 
-        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        const API_BASE = '';
         
         let count = 0;
         for (const group of queue) {
@@ -571,7 +619,7 @@ export function AppProvider({ children }) {
           painPoints: f.painPoints || [],
         }));
 
-        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        const API_BASE = '';
         const res = await fetch(`${API_BASE}/api/generate-ai-analysis`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -638,7 +686,7 @@ export function AppProvider({ children }) {
 
         dispatch({ type: 'SET_EXEC_PROGRESS', payload: { current: 0, total: selectedWPs.length, status: 'Starting sequential execution analysis...' } });
 
-        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        const API_BASE = '';
         const results = [];
 
         let count = 0;
@@ -688,7 +736,7 @@ export function AppProvider({ children }) {
 
       dispatch({ type: 'SET_SPEC_LOADING', payload: true });
       try {
-        const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:3001';
+        const API_BASE = '';
         const res = await fetch(`${API_BASE}/api/generate-ai-spec`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -725,6 +773,7 @@ export function AppProvider({ children }) {
       localStorage.removeItem('stratigen_last_project_id');
       dispatch({ type: 'RESET_PROJECT' });
     }, []),
+    resetProjectData: useCallback(() => dispatch({ type: 'RESET_PROJECT_DATA' }), []),
   };
 
   // Session Restoration (Auto-Hydration)

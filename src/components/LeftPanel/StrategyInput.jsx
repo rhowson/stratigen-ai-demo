@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { suggestedObjectives } from '../../data/recruitmentModel';
+import { getIndustryData } from '../../data/industryModels';
 import { Target, Plus, X } from 'react-feather';
 
 export default function StrategyInput() {
@@ -20,6 +20,7 @@ export default function StrategyInput() {
   };
 
   const usedNames = new Set(state.objectives.map(o => o.name));
+  const { suggestedObjectives } = getIndustryData(state.industryId);
 
   return (
     <div className="input-section">
@@ -49,7 +50,7 @@ export default function StrategyInput() {
       </form>
 
       <div style={{ marginTop: 'var(--space-lg)' }}>
-        <div className="form-label">Suggested for Recruitment</div>
+        <div className="form-label">Suggested for {state.industryName}</div>
         <div className="suggestion-chips">
           {suggestedObjectives
             .filter(s => !usedNames.has(s.name))
